@@ -1,4 +1,4 @@
-**Hadoop主要由HDFS，Yarn和MapReduce三部分构成**
+**Hadoop2.9.0 主要由HDFS，Yarn和MapReduce三部分构成**
 
 # HDFS
 
@@ -139,124 +139,143 @@ itaojin106: 192.168.1.106 SecondaryNamNode
   
 **code-site.xml**  
   
-<configuration>  
-<!--数据存储路径-->  
-<property>  
-<name>hadoop.tmp.dir</name>  
-<value>/hadoop/tmp</value>  
-<description>Abase for other temporary directories.</description>  
-</property>  
-<!--默认的主节点-->  
-<property>  
-<name>fs.defaultFS</name>  
-<value>hdfs://itaojin103:9000</value>  
-</property>  
-<property>  
-<name>io.file.buffer.size</name>  
-<value>4096</value>  
-</property>  
-</configuration>  
+
+    <configuration>  
+    <!--数据存储路径-->  
+    <property>  
+    <name>hadoop.tmp.dir</name>  
+    <value>/hadoop/tmp</value>  
+    <description>Abase for other temporary directories.</description>  
+    </property>  
+    <!--默认的主节点-->  
+    <property>  
+    <name>fs.defaultFS</name>  
+    <value>hdfs://itaojin103:9000</value>  
+    </property>  
+    <property>  
+    <name>io.file.buffer.size</name>  
+    <value>4096</value>  
+    </property>  
+    </configuration> 
+
+ 
   
 **hdfs-site.xml**  
   
-<configuration>  
-<!--副本数-->  
-<property>  
-<name>dfs.replication</name>  
-<value>2</value>  
-<description>nodes total count</description>  
-</property>  
+
+    <configuration>  
+    <!--副本数-->  
+    <property>  
+    <name>dfs.replication</name>  
+    <value>2</value>  
+    <description>nodes total count</description>  
+    </property>  
+      
+    <!--只需在NameNode上配置，SecondaryNameNode节点服务器-->  
+    <property>  
+    <name>dfs.namenode.secondary.http-address</name>  
+    <value>itaojin106:50090</value>  
+    </property>  
+    </configuration>
+
   
-<!--只需在NameNode上配置，SecondaryNameNode节点服务器-->  
-<property>  
-<name>dfs.namenode.secondary.http-address</name>  
-<value>itaojin106:50090</value>  
-</property>  
-</configuration>  
   
 新建**mapred-site.xml**  
   
-<configuration>  
-<property>  
-<name>mapreduce.framework.name</name>  
-<value>yarn</value>  
-<final>true</final>  
-</property>  
-<property>  
-<name>mapreduce.jobtracker.http.address</name>  
-<value>itaojin103:50030</value>  
-</property>  
-<property>  
-<name>mapreduce.jobhistory.address</name>  
-<value>itaojin103:10020</value>  
-</property>  
-<property>  
-<name>mapreduce.jobhistory.webapp.address</name>  
-<value>itaojin103:19888</value>  
-</property>  
-<property>  
-<name>mapred.job.tracker</name>  
-<value>http://itaojin103:9001</value>  
-</property>  
-</configuration>  
+
+    <configuration>  
+    <property>  
+    <name>mapreduce.framework.name</name>  
+    <value>yarn</value>  
+    <final>true</final>  
+    </property>  
+    <property>  
+    <name>mapreduce.jobtracker.http.address</name>  
+    <value>itaojin103:50030</value>  
+    </property>  
+    <property>  
+    <name>mapreduce.jobhistory.address</name>  
+    <value>itaojin103:10020</value>  
+    </property>  
+    <property>  
+    <name>mapreduce.jobhistory.webapp.address</name>  
+    <value>itaojin103:19888</value>  
+    </property>  
+    <property>  
+    <name>mapred.job.tracker</name>  
+    <value>http://itaojin103:9001</value>  
+    </property>  
+    </configuration>
+
+  
   
 新建**masters**  
   
-<!--SecondaryNameNode服务器-->  
-itaojin106  
+
+    <!--SecondaryNameNode服务器-->  
+    itaojin106  
+
   
 **slaves**  
   
-<!--DataNode节点，一行一个-->  
-itaojin101  
-itaojin102  
+
+    <!--DataNode节点，一行一个-->  
+    itaojin101  
+    itaojin102  
+
   
 **yarn-site.xml**  
   
-<configuration>  
-<!-- Site specific YARN configuration properties -->  
-<property>  
-<name>yarn.resourcemanager.hostname</name>  
-<value>itaojin103</value>  
-</property>  
-<property>  
-<name>yarn.nodemanager.aux-services</name>  
-<value>mapreduce_shuffle</value>  
-</property>  
-<property>  
-<name>yarn.resourcemanager.address</name>  
-<value>itaojin103:8032</value>  
-</property>  
-<property>  
-<name>yarn.resourcemanager.scheduler.address</name>  
-<value>itaojin103:8030</value>  
-</property>  
-<property>  
-<name>yarn.resourcemanager.resource-tracker.address</name>  
-<value>itaojin103:8031</value>  
-</property>  
-<property>  
-<name>yarn.resourcemanager.admin.address</name>  
-<value>itaojin103:8033</value>  
-</property>  
-<property>  
-<name>yarn.resourcemanager.webapp.address</name>  
-<value>itaojin103:8088</value>  
-</property>  
-</configuration>  
+
+    <configuration>  
+    <!-- Site specific YARN configuration properties -->  
+    <property>  
+    <name>yarn.resourcemanager.hostname</name>  
+    <value>itaojin103</value>  
+    </property>  
+    <property>  
+    <name>yarn.nodemanager.aux-services</name>  
+    <value>mapreduce_shuffle</value>  
+    </property>  
+    <property>  
+    <name>yarn.resourcemanager.address</name>  
+    <value>itaojin103:8032</value>  
+    </property>  
+    <property>  
+    <name>yarn.resourcemanager.scheduler.address</name>  
+    <value>itaojin103:8030</value>  
+    </property>  
+    <property>  
+    <name>yarn.resourcemanager.resource-tracker.address</name>  
+    <value>itaojin103:8031</value>  
+    </property>  
+    <property>  
+    <name>yarn.resourcemanager.admin.address</name>  
+    <value>itaojin103:8033</value>  
+    </property>  
+    <property>  
+    <name>yarn.resourcemanager.webapp.address</name>  
+    <value>itaojin103:8088</value>  
+    </property>  
+    </configuration>  
+
   
 **hadoop-env.sh**  
   
-<!--配置本机JDK路径-->  
-export JAVA_HOME=/usr/local/java/jdk1.8.0_152  
+
+    <!--配置本机JDK路径-->  
+    export JAVA_HOME=/usr/local/java/jdk1.8.0_152  
+
   
 #### 启动  
 只需在NameNode节点上启动即可  
   
-start-all.sh 启动HDFS和MapReduce  
-stop-all.sh  
-start-dfs.sh 只启动HDFS  
-stop-dfs.sh  
+
+    start-all.sh 启动HDFS和MapReduce  
+    stop-all.sh  
+    start-dfs.sh 只启动HDFS  
+    stop-dfs.sh  
+
   
 #### 验证  
   
@@ -497,11 +516,11 @@ export JAVA_HOME=/usr/local/java/jdk1.8.0_152
 ![enter image description here](https://i.imgur.com/KTc9kbR.png)
 **可以看到，zookeeper中多了hadoop-ha**
 
-#### 启动
+### 启动
 
     start-dfs.sh
 
-#### 验证
+### 验证
 * 用浏览器访问： `http://itaojin101:50070`
 * 自动切换
 首先访问两个NameNode的50070端口，知道Active和Standby的对应关系，然后到Active的服务器上执行
