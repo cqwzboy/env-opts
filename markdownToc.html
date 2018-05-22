@@ -1,0 +1,197 @@
+<!-- 插件官网地址：http://ruby-china.org/topics/17028 -->
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>markdownToc</title>
+        <link rel="stylesheet" type="text/css" href="./markdownToc_files/github2-rightpart.css" media="all">
+        <link rel="stylesheet" type="text/css" href="./markdownToc_files/github1-contents.css">
+        <link rel="stylesheet" href="./markdownToc_files/zTreeStyle.css" type="text/css">
+        <style>
+            .ztree li a.curSelectedNode {
+                padding-top: 0px;
+                background-color: #FFE6B0;
+                color: black;
+                height: 16px;
+                border: 1px #FFB951 solid;
+                opacity: 0.8;
+            }
+            .ztree{
+                overflow: auto;
+                height:100%;
+                min-height: 200px;
+                top: 0px;
+            }
+        </style>
+    </head>
+    <body style="">
+        <div>
+            <div style="width:30%;">
+                <ul id="tree" class="ztree" style="width: 260px; overflow: auto; position: fixed; z-index: 2147483647; border: 0px none; left: 0px; bottom: 0px;">
+                <!-- 目录内容在网页另存为之后将插入到此处 -->
+                </ul>
+            </div>
+            <div id="readme" style="width:70%;margin-left:25%;">
+                <article class="markdown-body">
+
+
+<!-- ***********************************************************内容分割线****************************************************************** -->
+<!-- 请把你的html正文部分粘贴到此处，在浏览器中打开之后将会自动生成目录。如果想要将目录保留并嵌入到此文档中，只需在浏览器中“另存为->网页，全部”即可 -->
+
+<div class="stackedit__html"><h1 id="准备工作">准备工作</h1>
+<ol>
+<li>
+<p>服务器说明：</p>
+<p>itaojin101: 192.168.1.101 DataNode</p>
+<p>itaojin102: 192.168.1.102 DataNode</p>
+<p>itaojin103: 192.168.1.103 NamNode</p>
+<p>itaojin106: 192.168.1.106 SecondaryNamNode</p>
+</li>
+<li>
+<p>每台机器安装SSH，且实现免密登录</p>
+</li>
+<li>
+<p>每台机器安装JDK1.8</p>
+</li>
+</ol>
+<h1 id="搭建步骤">搭建步骤</h1>
+<h2 id="下载">下载</h2>
+<p>下载Hadoop2.9并解压，将/bin和/sbin加入path环境变量</p>
+<h2 id="配置">配置</h2>
+<p>在…/etc/hadoop路径下配置文件：</p>
+<p><strong>无特殊说明，以下配置在每个节点上都需要配置</strong></p>
+<p><strong>code-site.xml</strong></p>
+<pre><code>&lt;configuration&gt;
+	&lt;!--数据存储路径--&gt;
+	&lt;property&gt;  
+			&lt;name&gt;hadoop.tmp.dir&lt;/name&gt;  
+			&lt;value&gt;/hadoop/tmp&lt;/value&gt;  
+			&lt;description&gt;Abase for other temporary directories.&lt;/description&gt;  
+	&lt;/property&gt; 
+	&lt;!--默认的主节点--&gt; 
+	&lt;property&gt;  
+			&lt;name&gt;fs.defaultFS&lt;/name&gt;  
+			&lt;value&gt;hdfs://itaojin103:9000&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+			&lt;name&gt;io.file.buffer.size&lt;/name&gt;  
+			&lt;value&gt;4096&lt;/value&gt;  
+	&lt;/property&gt; 
+&lt;/configuration&gt;
+</code></pre>
+<p><strong>hdfs-site.xml</strong></p>
+<pre><code>&lt;configuration&gt;
+	&lt;!--副本数--&gt;
+	&lt;property&gt;  
+			&lt;name&gt;dfs.replication&lt;/name&gt;  
+			&lt;value&gt;2&lt;/value&gt;  
+			&lt;description&gt;nodes total count&lt;/description&gt;  
+	&lt;/property&gt;
+
+	&lt;!--只需在NameNode上配置，SecondaryNameNode节点服务器--&gt;
+	&lt;property&gt;
+		&lt;name&gt;dfs.namenode.secondary.http-address&lt;/name&gt;
+		&lt;value&gt;itaojin106:50090&lt;/value&gt;
+	&lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre>
+<p>新建<strong>mapred-site.xml</strong></p>
+<pre><code>&lt;configuration&gt;
+	&lt;property&gt;  
+		&lt;name&gt;mapreduce.framework.name&lt;/name&gt;  
+		&lt;value&gt;yarn&lt;/value&gt;  
+		&lt;final&gt;true&lt;/final&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;mapreduce.jobtracker.http.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:50030&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;mapreduce.jobhistory.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:10020&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;mapreduce.jobhistory.webapp.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:19888&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		 &lt;name&gt;mapred.job.tracker&lt;/name&gt;  
+		 &lt;value&gt;http://itaojin103:9001&lt;/value&gt;  
+	&lt;/property&gt; 
+&lt;/configuration&gt;
+</code></pre>
+<p>新建<strong>masters</strong></p>
+<pre><code>&lt;!--SecondaryNameNode服务器--&gt;
+itaojin106
+</code></pre>
+<p><strong>slaves</strong></p>
+<pre><code>&lt;!--DataNode节点，一行一个--&gt;
+itaojin101
+itaojin102
+</code></pre>
+<p><strong>yarn-site.xml</strong></p>
+<pre><code>&lt;configuration&gt;
+	&lt;!-- Site specific YARN configuration properties --&gt;
+	&lt;property&gt;  
+		 &lt;name&gt;yarn.resourcemanager.hostname&lt;/name&gt;  
+		 &lt;value&gt;itaojin103&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;  
+		&lt;value&gt;mapreduce_shuffle&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;yarn.resourcemanager.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:8032&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;yarn.resourcemanager.scheduler.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:8030&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;yarn.resourcemanager.resource-tracker.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:8031&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;yarn.resourcemanager.admin.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:8033&lt;/value&gt;  
+	&lt;/property&gt;  
+	&lt;property&gt;  
+		&lt;name&gt;yarn.resourcemanager.webapp.address&lt;/name&gt;  
+		&lt;value&gt;itaojin103:8088&lt;/value&gt;  
+	&lt;/property&gt; 
+&lt;/configuration&gt;
+</code></pre>
+<p><strong><a href="http://hadoop-env.sh">hadoop-env.sh</a></strong></p>
+<pre><code>&lt;!--配置本机JDK路径--&gt;
+export JAVA_HOME=/usr/local/java/jdk1.8.0_152
+</code></pre>
+<h2 id="启动">启动</h2>
+<p>只需在NameNode节点上启动即可</p>
+<pre><code>start-all.sh 启动HDFS和MapReduce
+stop-all.sh 
+start-dfs.sh 只启动HDFS
+stop-dfs.sh
+</code></pre>
+<h2 id="验证">验证</h2>
+<p>·NameNode的IP:50070·，进入HDFS管理页面</p>
+</div>
+
+<!-- ***********************************************************内容分割线****************************************************************** -->
+
+                </article>
+            </div>
+        </div>
+    <script src="./markdownToc_files/jquery-1.10.2.min.js"></script>
+    <script src="./markdownToc_files/jquery.ztree.all-3.5.min.js"></script>
+    <script src="./markdownToc_files/jquery.ztree_toc.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#tree').ztree_toc({
+                is_auto_number:false,
+                documment_selector:'.markdown-body',
+                is_expand_all: true
+            });
+        });
+    </script>
+    </body>
+</html>
