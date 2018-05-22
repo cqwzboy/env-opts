@@ -1,4 +1,5 @@
-# 准备工作
+# 搭建Hadoop集群(非HA)
+## 准备工作
 1. 服务器说明：
 
     itaojin101: 192.168.1.101 DataNode
@@ -11,10 +12,10 @@
 2. 每台机器安装SSH，且实现免密登录
 3. 每台机器安装JDK1.8
 
-# 搭建步骤
-## 下载
+## 搭建步骤
+### 下载
 下载Hadoop2.9并解压，将/bin和/sbin加入path环境变量
-## 配置
+### 配置
 在../etc/hadoop路径下配置文件：
 
 **无特殊说明，以下配置在每个节点上都需要配置**
@@ -132,7 +133,7 @@
 	<!--配置本机JDK路径-->
     export JAVA_HOME=/usr/local/java/jdk1.8.0_152
 
-## 启动
+### 启动
 只需在NameNode节点上启动即可
 
     start-all.sh 启动HDFS和MapReduce
@@ -140,6 +141,6 @@
     start-dfs.sh 只启动HDFS
     stop-dfs.sh
 
-## 验证
+### 验证
 
 ·NameNode的IP:50070·，进入HDFS管理页面
