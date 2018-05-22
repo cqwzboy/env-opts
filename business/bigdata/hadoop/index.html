@@ -572,7 +572,13 @@ ls /
 <p>自动切换<br>
 首先访问两个NameNode的50070端口，知道Active和Standby的对应关系，然后到Active的服务器上执行</p>
 <p><strong>jps | grep NameNode | awk {‘print $1’} | xargs kill -9</strong><br>
-杀死NameNode，此时再访问50070，发现之前的Standby变成了Active，从而验证了自动切换。</p>
+杀死NameNode，此时再访问50070，发现之前的Standby变成了Active，从而验证了自动切换。<br>
+<strong>在自动切换时有一个坑：将Active节点kill掉后，Standby节点不能自动切换，究其原因，原来是最小化的CentOS7没有fuser，需要安装，执行：<br>
+yum install psmisc -y<br>
+执行以上命令可能报错：“Could not resolve host: <a href="http://centos.ustc.edu.cn">centos.ustc.edu.cn</a>; 未知的错误”，原因是没有配置DNS：<br>
+vim /etc/resolv.conf<br>
+添加：<br>
+nameserver 8.8.8.8</strong></p>
 </li>
 </ul>
 <h2 id="java客户端访问hdfs">Java客户端访问HDFS</h2>
@@ -606,6 +612,7 @@ ls /
 <h2 id="shell脚本">Shell脚本</h2>
 <p><a href="http://hadoop.apache.org/docs/r2.9.1/hadoop-project-dist/hadoop-hdfs/HDFSCommands.html">http://hadoop.apache.org/docs/r2.9.1/hadoop-project-dist/hadoop-hdfs/HDFSCommands.html</a></p>
 </div>
+
 <!-- ***********************************************************内容分割线****************************************************************** -->
 
                 </article>
