@@ -38,7 +38,84 @@
 <!-- 请把你的html正文部分粘贴到此处，在浏览器中打开之后将会自动生成目录。如果想要将目录保留并嵌入到此文档中，只需在浏览器中“另存为->网页，全部”即可 -->
 
 <div class="stackedit__html"><p><strong>Hadoop2.9.0 主要由HDFS，Yarn和MapReduce三部分构成</strong></p>
-<h1 id="hdfs">HDFS</h1>
+<h1 id="一览表">一览表</h1>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>NameNode</th>
+<th>JournalNode</th>
+<th>DataNode</th>
+<th>Zookeeper</th>
+<th>ZKFC</th>
+<th>ResourceManager</th>
+<th>NodeManager</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>itaojin101</td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>itaojin102</td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>itaojin103</td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin106</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin107</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin105</td>
+<td></td>
+<td></td>
+<td></td>
+<td>√</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table><h1 id="hdfs">HDFS</h1>
 <h2 id="几种hdfs集群">几种HDFS集群</h2>
 <h3 id="单机环境">单机环境</h3>
 <p>默认情况下，Hadoop被配置为以非分布式模式运行，作为单个Java进程。这对于调试非常有用。</p>
@@ -611,6 +688,548 @@ nameserver 8.8.8.8</strong></p>
 </code></pre>
 <h2 id="shell脚本">Shell脚本</h2>
 <p><a href="http://hadoop.apache.org/docs/r2.9.1/hadoop-project-dist/hadoop-hdfs/HDFSCommands.html">http://hadoop.apache.org/docs/r2.9.1/hadoop-project-dist/hadoop-hdfs/HDFSCommands.html</a></p>
+<h1 id="yarn">Yarn</h1>
+<h2 id="yarn基本服务组件">Yarn基本服务组件</h2>
+<p>YARN是Hadoop 2.0中的资源管理<a href="http://www.2cto.com/os/">系统</a>，它的基本设计思想是将MRv1中的JobTracker拆分成了两个独立的服务：一个全局的资源管理器ResourceManager和每个应用程序特有的ApplicationMaster。其中ResourceManager负责整个<a href="http://www.2cto.com/os/">系统</a>的资源管理和分配，而ApplicationMaster负责单个应用程序的管理。<br>
+<img src="https://images2015.cnblogs.com/blog/669905/201704/669905-20170420115227884-1056505556.png" alt="enter image description here"><br>
+YARN总体上仍然是master/slave结构，在整个资源管理框架中，resourcemanager为master，nodemanager是slave。Resourcemanager负责对各个nademanger上资源进行统一管理和调度。当用户提交一个应用程序时，需要提供一个用以跟踪和管理这个程序的ApplicationMaster，它负责向ResourceManager申请资源，并要求NodeManger启动可以占用一定资源的任务。由于不同的ApplicationMaster被分布到不同的节点上，因此它们之间不会相互影响。</p>
+<p>YARN的基本组成结构，YARN主要由ResourceManager、NodeManager、ApplicationMaster和Container等几个<a href="http://www.2cto.com/kf/all/zujian/">组件</a>构成。</p>
+<p>ResourceManager是Master上一个独立运行的进程，负责集群统一的资源管理、调度、分配等等；NodeManager是Slave上一个独立运行的进程，负责上报节点的状态；App Master和Container是运行在Slave上的组件，Container是yarn中分配资源的一个单位，包涵内存、CPU等等资源，yarn以Container为单位分配资源。</p>
+<p>Client向ResourceManager提交的每一个应用程序都必须有一个Application Master，它经过ResourceManager分配资源后，运行于某一个Slave节点的Container中，具体做事情的Task，同样也运行与某一个Slave节点的Container中。RM，NM，AM乃至普通的Container之间的通信，都是用RPC机制。</p>
+<p>YARN的架构设计使其越来越像是一个云操作系统，数据处理操作系统。<br>
+<img src="https://images2015.cnblogs.com/blog/669905/201704/669905-20170420115229618-1888016161.jpg" alt="enter image description here"></p>
+<h3 id="resourcemanager">Resourcemanager</h3>
+<p>RM是一个全局的资源管理器，集群只有一个，负责整个系统的资源管理和分配，包括处理客户端请求、启动/监控APP master、监控nodemanager、资源的分配与调度。它主要由两个<a href="http://www.2cto.com/kf/all/zujian/">组件</a>构成：调度器（Scheduler）和应用程序管理器（Applications Manager，ASM）。</p>
+<p>（1） <strong>调度器</strong></p>
+<p>调度器根据容量、队列等限制条件（如每个队列分配一定的资源，最多执行一定数量的作业等），将系统中的资源分配给各个正在运行的应用程序。需要注意的是，该调度器是一个“纯调度器”，它不再从事任何与具体应用程序相关的工作，比如不负责监控或者跟踪应用的执行状态等，也不负责重新启动因应用执行失败或者硬件故障而产生的失败任务，这些均交由应用程序相关的ApplicationMaster完成。调度器仅根据各个应用程序的资源需求进行资源分配，而资源分配单位用一个抽象概念“资源容器”（Resource Container，简称Container）表示，Container是一个动态资源分配单位，它将内存、CPU、磁盘、网络等资源封装在一起，从而限定每个任务使用的资源量。此外，该调度器是一个可插拔的组件，用户可根据自己的需要设计新的调度器，YARN提供了多种直接可用的调度器，比如Fair Scheduler和Capacity Scheduler等。</p>
+<p>（2） <strong>应用程序管理器</strong></p>
+<p>应用程序管理器负责管理整个系统中所有应用程序，包括应用程序提交、与调度器协商资源以启动ApplicationMaster、监控ApplicationMaster运行状态并在失败时重新启动它等。</p>
+<h3 id="applicationmaster（am）">ApplicationMaster（AM）</h3>
+<p>管理YARN内运行的应用程序的每个实例。</p>
+<p>功能：数据切分</p>
+<p>为应用程序申请资源并进一步分配给内部任务。</p>
+<p>任务监控与容错</p>
+<p>负责协调来自resourcemanager的资源，并通过nodemanager监视容易的执行和资源使用情况。</p>
+<h3 id="nodemanager（nm）">NodeManager（NM）</h3>
+<p>Nodemanager整个集群有多个，负责每个节点上的资源和使用。</p>
+<p>功能：单个节点上的资源管理和任务。</p>
+<p>处理来自于resourcemanager的命令。</p>
+<p>处理来自域app master的命令。</p>
+<p>Nodemanager管理着抽象容器，这些抽象容器代表着一些特定程序使用针对每个节点的资源。</p>
+<p>Nodemanager定时地向RM汇报本节点上的资源使用情况和各个Container的运行状态（cpu和内存等资源）</p>
+<h3 id="container">Container</h3>
+<p>Container是YARN中的资源抽象，它封装了某个节点上的多维度资源，如内存、CPU、磁盘、网络等，当AM向RM申请资源时，RM为AM返回的资源便是用Container表示的。YARN会为每个任务分配一个Container，且该任务只能使用该Container中描述的资源。需要注意的是，Container不同于MRv1中的slot，它是一个动态资源划分单位，是根据应用程序的需求动态生成的。目前为止，YARN仅支持CPU和内存两种资源，且使用了轻量级资源隔离机制Cgroups进行资源隔离。</p>
+<p>功能：对task环境的抽象</p>
+<p>描述一系列信息</p>
+<p>任务运行资源的集合（cpu、内存、io等）</p>
+<p>任务运行环境</p>
+<h2 id="yarn的资源管理">YARN的资源管理</h2>
+<ol>
+<li>
+<p>资源调度和隔离是yarn作为一个资源管理系统，最重要且最基础的两个功能。资源调度由resourcemanager完成，而资源隔离由各个nodemanager实现。</p>
+</li>
+<li>
+<p>Resourcemanager将某个nodemanager上资源分配给任务（这就是所谓的“资源调度”）后，nodemanager需按照要求为任务提供相应的资源，甚至保证这些资源应具有独占性，为任务运行提供基础和保证，这就是所谓的资源隔离。</p>
+</li>
+<li>
+<p>当谈及到资源时，我们通常指内存、cpu、io三种资源。Hadoop yarn目前为止仅支持cpu和内存两种资源管理和调度。</p>
+</li>
+<li>
+<p>内存资源多少决定任务的生死，如果内存不够，任务可能运行失败；相比之下，cpu资源则不同，它只会决定任务的快慢，不会对任务的生死产生影响。</p>
+</li>
+</ol>
+<h3 id="yarn的内存管理">Yarn的内存管理</h3>
+<p>yarn允许用户配置每个节点上可用的物理内存资源，注意，这里是“可用的”，因为一个节点上内存会被若干个服务贡享，比如一部分给了yarn，一部分给了hdfs，一部分给了hbase等，yarn配置的只是自己可用的，配置参数如下：</p>
+<pre><code>yarn.nodemanager.resource.memory-mb
+</code></pre>
+<p>表示该节点上yarn可以使用的物理内存总量，默认是8192m，注意，如果你的节点内存资源不够8g，则需要调减这个值，yarn不会智能的探测节点物理内存总量。</p>
+<pre><code>yarn.nodemanager.vmem-pmem-ratio
+</code></pre>
+<p>任务使用1m物理内存最多可以使用虚拟内存量，默认是2.1</p>
+<pre><code>yarn.nodemanager.pmem-check-enabled
+</code></pre>
+<p>是否启用一个线程检查每个任务证使用的物理内存量，如果任务超出了分配值，则直接将其kill，默认是true。</p>
+<pre><code>yarn.nodemanager.vmem-check-enabled
+</code></pre>
+<p>是否启用一个线程检查每个任务证使用的虚拟内存量，如果任务超出了分配值，则直接将其kill，默认是true。</p>
+<pre><code>yarn.scheduler.minimum-allocation-mb
+</code></pre>
+<p>单个任务可以使用最小物理内存量，默认1024m，如果一个任务申请物理内存量少于该值，则该对应值改为这个数。</p>
+<pre><code>yarn.scheduler.maximum-allocation-mb
+</code></pre>
+<p>单个任务可以申请的最多的内存量，默认8192m</p>
+<h3 id="yarn-cpu管理">Yarn cpu管理</h3>
+<p>目前cpu被划分为虚拟cpu，这里的虚拟cpu是yarn自己引入的概念，初衷是考虑到不同节点cpu性能可能不同，每个cpu具有计算能力也是不一样的，比如，某个物理cpu计算能力可能是另外一个物理cpu的2倍，这时候，你可以通过为第一个物理cpu多配置几个虚拟cpu弥补这种差异。用户提交作业时，可以指定每个任务需要的虚拟cpu个数。在yarn中，cpu相关配置参数如下：</p>
+<pre><code>yarn.nodemanager.resource.cpu-vcores
+</code></pre>
+<p>表示该节点上yarn可使用的虚拟cpu个数，默认是8个，注意，目前推荐将该值为与物理cpu核数相同。如果你的节点cpu合数不够8个，则需要调减小这个值，而yarn不会智能的探测节点物理cpu总数。</p>
+<pre><code>yarn.scheduler.minimum-allocation-vcores
+</code></pre>
+<p>单个任务可申请最小cpu个数，默认1，如果一个任务申请的cpu个数少于该数，则该对应值被修改为这个数</p>
+<pre><code>yarn.scheduler.maximum-allocation-vcores
+</code></pre>
+<p>单个任务可以申请最多虚拟cpu个数，默认是32.</p>
+<h2 id="搭建集群-ha">搭建集群 (HA)</h2>
+<h3 id="节点规划">节点规划</h3>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>ResourceManager</th>
+<th>NodeManager</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>itaojin101</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>itaojin102</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>itaojin103</td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin106</td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin107</td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin105</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table><h3 id="编辑yarn-env.sh"><a href="http://xn--yarn-env-8c2vp91j.sh">编辑yarn-env.sh</a></h3>
+<pre><code>export JAVA_HOME=/usr/local/java/jdk1.8.0_152
+</code></pre>
+<h3 id="编辑yarn-site.xml">编辑yarn-site.xml</h3>
+<pre><code>&lt;configuration&gt;
+	&lt;!--是否启用yarn的HA--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.ha.enabled&lt;/name&gt;
+	  &lt;value&gt;true&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--yarn的HA虚拟服务名--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.cluster-id&lt;/name&gt;
+	  &lt;value&gt;cluster1&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--yarn的HA虚拟服务名下的具体服务名--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.ha.rm-ids&lt;/name&gt;
+	  &lt;value&gt;rm1,rm2&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--指定ResourceManager的主机名--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.hostname.rm1&lt;/name&gt;
+	  &lt;value&gt;itaojin101&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.hostname.rm2&lt;/name&gt;
+	  &lt;value&gt;itaojin102&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--指定shuffle--&gt;
+	&lt;property&gt;
+		&lt;name&gt;yarn.nodemanager.aux-services&lt;/name&gt;
+		&lt;value&gt;mapreduce_shuffle&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--指定ResourceManager的web UI通讯地址--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.webapp.address.rm1&lt;/name&gt;
+	  &lt;value&gt;itaojin101:8088&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.webapp.address.rm2&lt;/name&gt;
+	  &lt;value&gt;itaojin102:8088&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--指定Zookeeper集群环境--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.zk-address&lt;/name&gt;
+	  &lt;value&gt;itaojin105:2181,itaojin106:2181,itaojin107:2181&lt;/value&gt;
+	&lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre>
+<p><strong>至此。Yarn相关的配置已经完成，等到MapReduce配置完毕后一并验证</strong></p>
+<h1 id="mapreduce">MapReduce</h1>
+<h2 id="mapreduce是什么">MapReduce是什么</h2>
+<p>Hadoop MapReduce是一个软件框架，基于该框架能够容易地编写应用程序，这些应用程序能够运行在由上千个商用机器组成的大集群上，并以一种可靠的，具有容错能力的方式并行地处理上TB级别的海量数据集。这个定义里面有着这些关键词，</p>
+<ul>
+<li>一是软件框架</li>
+<li>二是并行处理</li>
+<li>三是可靠且容错</li>
+<li>四是大规模集群</li>
+<li>五是海量数据集</li>
+</ul>
+<h2 id="mapreduce做什么">MapReduce做什么</h2>
+<p>MapReduce擅长处理大数据，它为什么具有这种能力呢？这可由MapReduce的设计思想发觉。MapReduce的思想就是“<strong>分而治之</strong>”。</p>
+<p>（1）<strong>Mapper负责“分”</strong>，即把复杂的任务分解为若干个“简单的任务”来处理。“简单的任务”包含三层含义：</p>
+<p>一是数据或计算的规模相对原任务要大大<strong>缩小</strong>；二是<strong>就近计算原则</strong>，即任务会分配到存放着所需数据的节点上进行计算；三是这些小任务<strong>可以并行计算，彼此间几乎没有依赖</strong>关系。</p>
+<p>（2）<strong>Reducer</strong>负责对map阶段的<strong>结果进行汇总</strong>。至于需要多少个Reducer，用户可以根据具体问题，通过在mapred-site.xml配置文件里设置参数mapred.reduce.tasks的值，缺省值为1。</p>
+<blockquote>
+<p>一个比较形象的语言解释MapReduce：</p>
+<p>我们要数图书馆中的所有书。你数1号书架，我数2号书架。这就是“<strong>Map</strong>”。我们人越多，数书就更快。</p>
+<p>现在我们到一起，把所有人的统计数加在一起。这就是“<strong>Reduce</strong>”。</p>
+</blockquote>
+<h2 id="mapreduce工作机制">MapReduce工作机制</h2>
+<p><img src="http://images.cnitblog.com/blog/381412/201502/121253045737189.jpg" alt="enter image description here"></p>
+<p>MapReduce的整个工作过程如上图所示，它包含如下4个独立的实体：</p>
+<p>* 实体一：<strong>客户端</strong>，用来提交MapReduce作业。</p>
+<p>* 实体二：<strong>JobTracker</strong>，用来协调作业的运行。</p>
+<p>* 实体三：<strong>TaskTracker</strong>，用来处理作业划分后的任务。</p>
+<p>* 实体四：<strong>HDFS</strong>，用来在其它实体间共享作业文件。</p>
+<p><img src="http://images.cnitblog.com/blog/381412/201502/121311236836173.png" alt="enter image description here"></p>
+<h2 id="hadoop中的mapreduce框架">Hadoop中的MapReduce框架</h2>
+<p>一个MapReduce作业通常会把输入的数据集切分为若干独立的数据块，由Map任务以完全并行的方式去处理它们。</p>
+<p>框架会对Map的输出先进行排序，然后把结果输入给Reduce任务。通常作业的输入和输出都会被存储在文件系统中，整个框架负责任务的调度和监控，以及重新执行已经关闭的任务。</p>
+<p>通常，MapReduce框架和分布式文件系统是运行在一组相同的节点上，也就是说，计算节点和存储节点通常都是在一起的。这种配置允许框架在那些已经存好数据的节点上高效地调度任务，这可以使得整个集群的网络带宽被非常高效地利用。</p>
+<h3 id="mapreduce框架的组成">MapReduce框架的组成</h3>
+<p><img src="http://images.cnitblog.com/blog/381412/201312/21154930-a8557192283247449ce5a4adabc7585d.png" alt="enter image description here"></p>
+<ul>
+<li>
+<p>（1）JobTracker<br>
+　　JobTracker负责调度构成一个作业的所有任务，这些任务分布在不同的TaskTracker上（由上图的JobTracker可以看到2 assign map 和 3 assign reduce）。你可以将其理解为公司的项目经理，项目经理接受项目需求，并划分具体的任务给下面的开发工程师。</p>
+</li>
+<li>
+<p>（2）TaskTracker<br>
+　　TaskTracker负责执行由JobTracker指派的任务，这里我们就可以将其理解为开发工程师，完成项目经理安排的开发任务即可。</p>
+</li>
+</ul>
+<h3 id="mapreduce的输入输出">MapReduce的输入输出</h3>
+<p>MapReduce框架运转在**&lt;key,value&gt;**键值对上，也就是说，框架把作业的输入看成是一组&lt;key,value&gt;键值对，同样也产生一组&lt;key,value&gt;键值对作为作业的输出，这两组键值对有可能是不同的。</p>
+<p>一个MapReduce作业的输入和输出类型如下图所示：可以看出在整个流程中，会有三组&lt;key,value&gt;键值对类型的存在。<br>
+<img src="http://images.cnitblog.com/blog/381412/201502/121334513709082.png" alt="enter image description here"></p>
+<h3 id="mapreduce的处理流程">MapReduce的处理流程</h3>
+<p>这里以WordCount单词计数为例，介绍map和reduce两个阶段需要进行哪些处理。单词计数主要完成的功能是：统计一系列文本文件中每个单词出现的次数，如图所示：</p>
+<p><img src="http://images.cnitblog.com/blog/381412/201502/121405027292936.jpg" alt="enter image description here"></p>
+<p>（1）map任务处理<br>
+<img src="http://images.cnitblog.com/blog/381412/201502/121403128869360.png" alt="enter image description here"><br>
+（2）reduce任务处理<br>
+<img src="http://images.cnitblog.com/blog/381412/201502/121414341362568.png" alt="enter image description here"></p>
+<h2 id="第一个mapreduce程序：wordcount">第一个MapReduce程序：WordCount</h2>
+<p>WordCount单词计数是最简单也是最能体现MapReduce思想的程序之一，该程序完整的代码可以在Hadoop安装包的src/examples目录下找到。</p>
+<p>WordCount单词计数主要完成的功能是：<strong>统计一系列文本文件中每个单词出现的次数</strong>；</p>
+<h3 id="初始化一个words.txt文件并上传hdfs">初始化一个words.txt文件并上传HDFS</h3>
+<p>首先在Linux中通过Vim编辑一个简单的words.txt，其内容很简单如下所示：</p>
+<pre><code>Hello Edison Chou
+Hello Hadoop RPC
+Hello Wncud Chou
+Hello Hadoop MapReduce
+Hello Dick Gu
+</code></pre>
+<p>通过Shell命令将其上传到一个指定目录中，这里指定为：/testdir/input</p>
+<h3 id="自定义map函数">自定义Map函数</h3>
+<p>在Hadoop 中， map 函数位于内置类org.apache.hadoop.mapreduce.<strong>Mapper</strong>&lt;KEYIN,VALUEIN, KEYOUT, VALUEOUT&gt;中，reduce 函数位于内置类org.apache.hadoop. mapreduce.<strong>Reducer</strong>&lt;KEYIN, VALUEIN, KEYOUT, VALUEOUT&gt;中。</p>
+<p>我们要做的就是<strong>覆盖map 函数和reduce 函数</strong>，首先我们来覆盖map函数：继承Mapper类并重写map方法</p>
+<pre><code>/** * @author Edison Chou
+     * @version 1.0
+     * @param KEYIN
+     *            →k1 表示每一行的起始位置（偏移量offset）
+     * @param VALUEIN
+     *            →v1 表示每一行的文本内容
+     * @param KEYOUT
+     *            →k2 表示每一行中的每个单词
+     * @param VALUEOUT
+     *            →v2 表示每一行中的每个单词的出现次数，固定值为1 */
+    public static class MyMapper extends Mapper&lt;LongWritable, Text, Text, LongWritable&gt; { protected void map(LongWritable key, Text value,
+                Mapper&lt;LongWritable, Text, Text, LongWritable&gt;.Context context) throws java.io.IOException, InterruptedException {
+            String[] spilted = value.toString().split(" "); for (String word : spilted) {
+                context.write(new Text(word), new LongWritable(1L));
+            }
+        };
+    }
+</code></pre>
+<p>Mapper 类，有四个泛型，分别是KEYIN、VALUEIN、KEYOUT、VALUEOUT，前面两个KEYIN、VALUEIN 指的是map 函数输入的参数key、value 的类型；后面两个KEYOUT、VALUEOUT 指的是map 函数输出的key、value 的类型；</p>
+<p>从代码中可以看出，在Mapper类和Reducer类中都使用了Hadoop自带的基本数据类型，例如String对应Text，long对应LongWritable，int对应IntWritable。这是因为HDFS涉及到序列化的问题，Hadoop的基本数据类型都实现了一个Writable接口，而实现了这个接口的类型都支持序列化。</p>
+<p>这里的map函数中通过空格符号来分割文本内容，并对其进行记录；</p>
+<h3 id="自定义reduce函数">自定义Reduce函数</h3>
+<p>现在我们来覆盖reduce函数：继承Reducer类并重写reduce方法</p>
+<pre><code>/** * @author Edison Chou
+     * @version 1.0
+     * @param KEYIN
+     *            →k2 表示每一行中的每个单词
+     * @param VALUEIN
+     *            →v2 表示每一行中的每个单词的出现次数，固定值为1
+     * @param KEYOUT
+     *            →k3 表示每一行中的每个单词
+     * @param VALUEOUT
+     *            →v3 表示每一行中的每个单词的出现次数之和 */
+    public static class MyReducer extends Reducer&lt;Text, LongWritable, Text, LongWritable&gt; { protected void reduce(Text key,
+                java.lang.Iterable&lt;LongWritable&gt; values,
+                Reducer&lt;Text, LongWritable, Text, LongWritable&gt;.Context context) throws java.io.IOException, InterruptedException { long count = 0L; for (LongWritable value : values) {
+                count += value.get();
+            }
+            context.write(key, new LongWritable(count));
+        };
+    }
+</code></pre>
+<p>Reducer 类，也有四个泛型，同理，分别指的是reduce 函数输入的key、value类型（这里输入的key、value类型通常和map的输出key、value类型保持一致）和输出的key、value 类型。</p>
+<p>这里的reduce函数主要是将传入的&lt;k2,v2&gt;进行最后的合并统计，形成最后的统计结果。</p>
+<h3 id="设置main函数">设置Main函数</h3>
+<p>（1）设定输入目录，当然也可以作为参数传入</p>
+<p>public static final String INPUT_PATH = “hdfs://hadoop-master:9000/testdir/input/words.txt”;</p>
+<p>（2）设定输出目录（<strong>输出目录需要是空目录</strong>），当然也可以作为参数传入</p>
+<p>public static final String OUTPUT_PATH = “hdfs://hadoop-master:9000/testdir/output/wordcount”;</p>
+<p>（3）Main函数的主要代码</p>
+<pre><code>public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration(); // 0.0:首先删除输出路径的已有生成文件
+        FileSystem fs = FileSystem.get(new URI(INPUT_PATH), conf);
+        Path outPath = new Path(OUTPUT_PATH); if (fs.exists(outPath)) {
+            fs.delete(outPath, true);
+        }
+
+        Job job = new Job(conf, "WordCount");
+        job.setJarByClass(MyWordCountJob.class); // 1.0:指定输入目录
+        FileInputFormat.setInputPaths(job, new Path(INPUT_PATH)); // 1.1:指定对输入数据进行格式化处理的类（可以省略）
+        job.setInputFormatClass(TextInputFormat.class); // 1.2:指定自定义的Mapper类
+        job.setMapperClass(MyMapper.class); // 1.3:指定map输出的&lt;K,V&gt;类型（如果&lt;k3,v3&gt;的类型与&lt;k2,v2&gt;的类型一致则可以省略）
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(LongWritable.class); // 1.4:分区（可以省略）
+        job.setPartitionerClass(HashPartitioner.class); // 1.5:设置要运行的Reducer的数量（可以省略）
+        job.setNumReduceTasks(1); // 1.6:指定自定义的Reducer类
+        job.setReducerClass(MyReducer.class); // 1.7:指定reduce输出的&lt;K,V&gt;类型
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(LongWritable.class); // 1.8:指定输出目录
+        FileOutputFormat.setOutputPath(job, new Path(OUTPUT_PATH)); // 1.9:指定对输出数据进行格式化处理的类（可以省略）
+        job.setOutputFormatClass(TextOutputFormat.class); // 2.0:提交作业
+        boolean success = job.waitForCompletion(true); if (success) {
+            System.out.println("Success");
+            System.exit(0);
+        } else {
+            System.out.println("Failed");
+            System.exit(1);
+        }
+    }
+</code></pre>
+<p>在Main函数中，主要做了三件事：一是指定输入、输出目录；二是指定自定义的Mapper类和Reducer类；三是提交作业；匆匆看下来，代码有点多，但有些其实是可以省略的。</p>
+<p>（4）完整代码如下所示</p>
+<h3 id="运行吧小demo">运行吧小DEMO</h3>
+<p>（1）调试查看控制台状态信息<br>
+<img src="http://images.cnitblog.com/blog/381412/201502/121454532613812.jpg" alt="enter image description here"></p>
+<p>（2）通过Shell命令查看统计结果<br>
+<img src="http://images.cnitblog.com/blog/381412/201502/121456144951094.jpg" alt="enter image description here"></p>
+<h2 id="使用toolrunner类改写wordcount">使用ToolRunner类改写WordCount</h2>
+<p>Hadoop有个ToolRunner类，它是个好东西，简单好用。无论在《Hadoop权威指南》还是Hadoop项目源码自带的example，都推荐使用ToolRunner。</p>
+<h3 id="最初的写法">最初的写法</h3>
+<p>下面我们看下src/example目录下WordCount.java文件，它的代码结构是这样的：</p>
+<pre><code>public class WordCount { // 略...
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        String[] otherArgs = new GenericOptionsParser(conf, 
+                                            args).getRemainingArgs(); // 略...
+        Job job = new Job(conf, "word count"); // 略...
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+</code></pre>
+<p>WordCount.java中使用到了GenericOptionsParser这个类，它的作用是<strong>将命令行中参数自动设置到变量conf中</strong>。举个例子，比如我希望通过命令行设置reduce task数量，就这么写：</p>
+<p>bin/hadoop jar MyJob.jar com.xxx.MyJobDriver -Dmapred.reduce.tasks=5</p>
+<p>上面这样就可以了，不需要将其硬编码到java代码中，很轻松就可以将参数与代码分离开。</p>
+<h3 id="加入toolrunner的写法">加入ToolRunner的写法</h3>
+<p>至此，我们还没有说到ToolRunner，上面的代码我们使用了GenericOptionsParser帮我们解析命令行参数，编写ToolRunner的程序员更懒，它将 GenericOptionsParser调用隐藏到自身run方法，被自动执行了，修改后的代码变成了这样：</p>
+<pre><code>public class WordCount extends Configured implements Tool {
+    @Override public int run(String[] arg0) throws Exception {
+        Job job = new Job(getConf(), "word count"); // 略...
+        System.exit(job.waitForCompletion(true) ? 0 : 1); return 0;
+    } public static void main(String[] args) throws Exception { int res = ToolRunner.run(new Configuration(), new WordCount(), args);
+        System.exit(res);
+    }
+}
+</code></pre>
+<p>看看这段代码上有什么不同：</p>
+<p>（1）让WordCount<strong>继承Configured并实现Tool接口</strong>。</p>
+<p>（2）<strong>重写Tool接口的run方法</strong>，run方法不是static类型，这很好。</p>
+<p>（3）在WordCount中我们将<strong>通过getConf()获取Configuration对象</strong>。</p>
+<p>可以看出，通过简单的几步，就可以实现代码与配置隔离、上传文件到DistributeCache等功能。修改MapReduce参数不需要修改java代码、打包、部署，提高工作效率。</p>
+<h3 id="重写wordcount程序">重写WordCount程序</h3>
+<pre><code>public class MyJob extends Configured implements Tool { public static class MyMapper extends Mapper&lt;LongWritable, Text, Text, LongWritable&gt; { protected void map(LongWritable key, Text value,
+                Mapper&lt;LongWritable, Text, Text, LongWritable&gt;.Context context) throws java.io.IOException, InterruptedException {
+                       ......
+            }
+        };
+    } public static class MyReducer extends Reducer&lt;Text, LongWritable, Text, LongWritable&gt; { protected void reduce(Text key,
+                java.lang.Iterable&lt;LongWritable&gt; values,
+                Reducer&lt;Text, LongWritable, Text, LongWritable&gt;.Context context) throws java.io.IOException, InterruptedException {
+                       ......
+        };
+    } // 输入文件路径
+    public static final String INPUT_PATH = "hdfs://hadoop-master:9000/testdir/input/words.txt"; // 输出文件路径
+    public static final String OUTPUT_PATH = "hdfs://hadoop-master:9000/testdir/output/wordcount";
+
+    @Override public int run(String[] args) throws Exception { // 首先删除输出路径的已有生成文件
+        FileSystem fs = FileSystem.get(new URI(INPUT_PATH), getConf());
+        Path outPath = new Path(OUTPUT_PATH); if (fs.exists(outPath)) {
+            fs.delete(outPath, true);
+        }
+
+        Job job = new Job(getConf(), "WordCount"); // 设置输入目录
+        FileInputFormat.setInputPaths(job, new Path(INPUT_PATH)); // 设置自定义Mapper
+        job.setMapperClass(MyMapper.class);
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(LongWritable.class); // 设置自定义Reducer
+        job.setReducerClass(MyReducer.class);
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(LongWritable.class); // 设置输出目录
+        FileOutputFormat.setOutputPath(job, new Path(OUTPUT_PATH));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1); return 0;
+    } public static void main(String[] args) {
+        Configuration conf = new Configuration(); try { int res = ToolRunner.run(conf, new MyJob(), args);
+            System.exit(res);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+</code></pre>
+<h2 id="配置-1">配置</h2>
+<h3 id="mapred-site.cml">mapred-site.cml</h3>
+<pre><code>&lt;configuration&gt;
+	&lt;!--指定mapreduce的运行框架--&gt;
+	&lt;property&gt;
+		&lt;name&gt;mapreduce.framework.name&lt;/name&gt;
+		&lt;value&gt;yarn&lt;/value&gt;
+		&lt;final&gt;true&lt;/final&gt;
+	&lt;/property&gt;
+&lt;/configuration&gt;
+</code></pre>
+<h2 id="启动-2">启动</h2>
+<ol>
+<li>
+<p>在itaojin101上执行：</p>
+<p><a href="http://start-yarn.sh">start-yarn.sh</a></p>
+</li>
+<li>
+<p>此时三个NodeManager节点已经启动，且itaojin101上的ResourceManager节点也已经启动，需要手动到itaojin102终端启动ResourceManager：</p>
+<p><a href="http://yarn-daemon.sh">yarn-daemon.sh</a> start resourcemanager</p>
+</li>
+</ol>
+<p>至此，高可用MapReduce集群已经搭建完毕！</p>
+<h2 id="验证-2">验证</h2>
+<ol>
+<li>运行 <code>jps</code>查看各个服务器上的相关节点，如下图所示就对了：</li>
+</ol>
+
+<table>
+<thead>
+<tr>
+<th></th>
+<th>NameNode</th>
+<th>JournalNode</th>
+<th>DataNode</th>
+<th>Zookeeper</th>
+<th>ZKFC</th>
+<th>ResourceManager</th>
+<th>NodeManager</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>itaojin101</td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>itaojin102</td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>itaojin103</td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin106</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin107</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+<tr>
+<td>itaojin105</td>
+<td></td>
+<td></td>
+<td></td>
+<td>√</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table><ol start="2">
+<li>通过运行一个WordCount小程序来验证：</li>
+</ol>
+<ul>
+<li>
+<p>在本地/root/下新建一个WordCount文件，并编辑为：</p>
+<p>hadoop is nice<br>
+hadoop good<br>
+hadoop is better</p>
+</li>
+<li>
+<p>将WordCount文件上传至HDFS根目录</p>
+<p>hdfs dfs -put /root/WordCount /</p>
+</li>
+<li>
+<p>执行命令：</p>
+<p>yarn jar &lt;hadoop_home&gt;/share/hadoop/mapreduce/hadoop-mapreduce-examples-2.9.0.jar wordcount /WordCount /out<br>
+<strong>运用Hadoop自带的wordcount统计器统计hdfs文件根目录下的WordCount文件，并且将结果输出到/out目录下</strong></p>
+</li>
+<li>
+<p>查看结果<br>
+<img src="https://i.imgur.com/U8jTQD5.png" alt="enter image description here"></p>
+</li>
+</ul>
+<ol start="3">
+<li>
+<p>验证高可用<br>
+<strong>将itaojin101上的ResourceManager进程杀死，itaojin102上的ResourceManager从Standby状态变成Active</strong><br>
+通过以下命令查看节点身份：</p>
+<p>yarn rmadmin -getServiceState rm1</p>
+</li>
+</ol>
 </div>
 
 <!-- ***********************************************************内容分割线****************************************************************** -->
