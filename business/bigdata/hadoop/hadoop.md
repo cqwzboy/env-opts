@@ -577,7 +577,7 @@ yum install psmisc -y
 
 ## Yarn基本服务组件
 YARN是Hadoop 2.0中的资源管理[系统](http://www.2cto.com/os/)，它的基本设计思想是将MRv1中的JobTracker拆分成了两个独立的服务：一个全局的资源管理器ResourceManager和每个应用程序特有的ApplicationMaster。其中ResourceManager负责整个[系统](http://www.2cto.com/os/)的资源管理和分配，而ApplicationMaster负责单个应用程序的管理。
-![enter image description here](https://images2015.cnblogs.com/blog/669905/201704/669905-20170420115227884-1056505556.png)
+![enter image description here](https://i.imgur.com/GVl9Atu.png)
 YARN总体上仍然是master/slave结构，在整个资源管理框架中，resourcemanager为master，nodemanager是slave。Resourcemanager负责对各个nademanger上资源进行统一管理和调度。当用户提交一个应用程序时，需要提供一个用以跟踪和管理这个程序的ApplicationMaster，它负责向ResourceManager申请资源，并要求NodeManger启动可以占用一定资源的任务。由于不同的ApplicationMaster被分布到不同的节点上，因此它们之间不会相互影响。
 
 YARN的基本组成结构，YARN主要由ResourceManager、NodeManager、ApplicationMaster和Container等几个[组件](http://www.2cto.com/kf/all/zujian/)构成。
@@ -587,7 +587,7 @@ ResourceManager是Master上一个独立运行的进程，负责集群统一的�
 Client向ResourceManager提交的每一个应用程序都必须有一个Application Master，它经过ResourceManager分配资源后，运行于某一个Slave节点的Container中，具体做事情的Task，同样也运行与某一个Slave节点的Container中。RM，NM，AM乃至普通的Container之间的通信，都是用RPC机制。
 
 YARN的架构设计使其越来越像是一个云操作系统，数据处理操作系统。
-![enter image description here](https://images2015.cnblogs.com/blog/669905/201704/669905-20170420115229618-1888016161.jpg)
+![enter image description here](https://i.imgur.com/Qqu4AFY.jpg)
 
 ### Resourcemanager
 RM是一个全局的资源管理器，集群只有一个，负责整个系统的资源管理和分配，包括处理客户端请求、启动/监控APP master、监控nodemanager、资源的分配与调度。它主要由两个[组件](http://www.2cto.com/kf/all/zujian/)构成：调度器（Scheduler）和应用程序管理器（Applications Manager，ASM）。
@@ -783,7 +783,7 @@ MapReduce擅长处理大数据，它为什么具有这种能力呢？这可由Ma
 > 现在我们到一起，把所有人的统计数加在一起。这就是“**Reduce**”。
 
 ## MapReduce工作机制
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121253045737189.jpg)
+![enter image description here](https://i.imgur.com/vNU5kPc.jpg)
 
 MapReduce的整个工作过程如上图所示，它包含如下4个独立的实体：
 
@@ -795,7 +795,7 @@ MapReduce的整个工作过程如上图所示，它包含如下4个独立的实�
 
 　　* 实体四：**HDFS**，用来在其它实体间共享作业文件。
 
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121311236836173.png)
+![enter image description here](https://i.imgur.com/fzAy2qH.png)
 
 ## Hadoop中的MapReduce框架
 一个MapReduce作业通常会把输入的数据集切分为若干独立的数据块，由Map任务以完全并行的方式去处理它们。
@@ -805,7 +805,7 @@ MapReduce的整个工作过程如上图所示，它包含如下4个独立的实�
 通常，MapReduce框架和分布式文件系统是运行在一组相同的节点上，也就是说，计算节点和存储节点通常都是在一起的。这种配置允许框架在那些已经存好数据的节点上高效地调度任务，这可以使得整个集群的网络带宽被非常高效地利用。
 
 ### MapReduce框架的组成
-![enter image description here](http://images.cnitblog.com/blog/381412/201312/21154930-a8557192283247449ce5a4adabc7585d.png)
+![enter image description here](https://i.imgur.com/qBh5jPC.png)
 
 * （1）JobTracker
 　　JobTracker负责调度构成一个作业的所有任务，这些任务分布在不同的TaskTracker上（由上图的JobTracker可以看到2 assign map 和 3 assign reduce）。你可以将其理解为公司的项目经理，项目经理接受项目需求，并划分具体的任务给下面的开发工程师。
@@ -817,17 +817,17 @@ MapReduce的整个工作过程如上图所示，它包含如下4个独立的实�
 MapReduce框架运转在**<key,value>**键值对上，也就是说，框架把作业的输入看成是一组<key,value>键值对，同样也产生一组<key,value>键值对作为作业的输出，这两组键值对有可能是不同的。
 
 　　一个MapReduce作业的输入和输出类型如下图所示：可以看出在整个流程中，会有三组<key,value>键值对类型的存在。
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121334513709082.png)
+![enter image description here](https://i.imgur.com/sy5C7X9.png)
 
 ### MapReduce的处理流程
 这里以WordCount单词计数为例，介绍map和reduce两个阶段需要进行哪些处理。单词计数主要完成的功能是：统计一系列文本文件中每个单词出现的次数，如图所示：
 
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121405027292936.jpg)
+![enter image description here](https://i.imgur.com/MACMucJ.jpg)
 
 （1）map任务处理
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121403128869360.png)
+![enter image description here](https://i.imgur.com/jM1NdVg.png)
 （2）reduce任务处理
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121414341362568.png)
+![enter image description here](https://i.imgur.com/n0dZokQ.png)
 
 ## 第一个MapReduce程序：WordCount
 WordCount单词计数是最简单也是最能体现MapReduce思想的程序之一，该程序完整的代码可以在Hadoop安装包的src/examples目录下找到。
@@ -950,10 +950,10 @@ public static final String OUTPUT_PATH = "hdfs://hadoop-master:9000/testdir/outp
 
 ### 运行吧小DEMO
 （1）调试查看控制台状态信息
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121454532613812.jpg)
+![enter image description here](https://i.imgur.com/2V3gdKm.jpg)
 
 （2）通过Shell命令查看统计结果
-![enter image description here](http://images.cnitblog.com/blog/381412/201502/121456144951094.jpg)
+![enter image description here](https://i.imgur.com/DTuyw68.jpg)
 
 ## 使用ToolRunner类改写WordCount
 Hadoop有个ToolRunner类，它是个好东西，简单好用。无论在《Hadoop权威指南》还是Hadoop项目源码自带的example，都推荐使用ToolRunner。
