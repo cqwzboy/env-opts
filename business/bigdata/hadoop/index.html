@@ -145,7 +145,7 @@
 <h3 id="namenode">NameNode</h3>
 <p>HDFS集群有两类节点以管理者和工作者的工作模式运行，namenode就是其中的管理者。它管理着文件系统的命名空间，维护着文件系统树及整棵树的所有文件和目录。这些信息以两个文件的形式保存于内存或者磁盘，这两个文件是：命名空间镜像文件fsimage和编辑日志文件edit logs ，同时namenode也记录着每个文件中各个块所在的数据节点信息。</p>
 <p><strong>namenode对元数据的操作过程</strong><br>
-<img src="https://img-blog.csdn.net/20170503091946427?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2pqdWFu/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="è¿™é‡Œå†™å›¾ç‰‡æè¿°"><br>
+<img src="https://i.imgur.com/TcJLN9W.png" alt="enter image description here"><br>
 图中有两个文件：<br>
 （1）fsimage:文件系统映射文件，也是元数据的镜像文件（磁盘中），存储某段时间namenode内存元数据信息。<br>
 （2）edits log:操作日志文件。<br>
@@ -164,7 +164,7 @@ SecondaryNameNode有两个作用，一是镜像备份，二是日志与镜像的
 镜像备份的作用：备份fsimage(fsimage是元数据发送检查点时写入文件)；<br>
 日志与镜像的定期合并的作用：将Namenode中edits日志和fsimage合并,防止如果Namenode节点故障，namenode下次启动的时候，会把fsimage加载到内存中，应用edits log,edits log往往很大，导致操作往往很耗时。<strong>（这也是namenode容错的一套机制）</strong></p>
 <p><strong>Secondary NameNode创建检查点过程</strong></p>
-<p><img src="https://img-blog.csdn.net/20170503103823737?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2pqdWFu/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="enter image description here"></p>
+<p><img src="https://i.imgur.com/LumHha1.png" alt="enter image description here"></p>
 <p><strong>Secondarynamenode工作过程</strong><br>
 （1）SecondaryNameNode通知NameNode准备提交edits文件，此时主节点将新的写操作数据记录到一个新的文件edits.new中。<br>
 （2）SecondaryNameNode通过HTTP GET方式获取NameNode的fsimage与edits文件（在SecondaryNameNode的current同级目录下可见到 temp.check-point或者previous-checkpoint目录，这些目录中存储着从namenode拷贝来的镜像文件）。<br>
@@ -1231,7 +1231,6 @@ hadoop is better</p>
 </li>
 </ol>
 </div>
-
 <!-- ***********************************************************内容分割线****************************************************************** -->
 
                 </article>
