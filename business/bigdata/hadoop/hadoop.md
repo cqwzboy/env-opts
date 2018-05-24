@@ -59,7 +59,7 @@ HDFS大致由NameNode, SecondaryNameNode, CheckpointNode, BackupNode, DataNode, 
 HDFS集群有两类节点以管理者和工作者的工作模式运行，namenode就是其中的管理者。它管理着文件系统的命名空间，维护着文件系统树及整棵树的所有文件和目录。这些信息以两个文件的形式保存于内存或者磁盘，这两个文件是：命名空间镜像文件fsimage和编辑日志文件edit logs ，同时namenode也记录着每个文件中各个块所在的数据节点信息。
 
 **namenode对元数据的操作过程**
-![è¿™é‡Œå†™å›¾ç‰‡æè¿°](https://img-blog.csdn.net/20170503091946427?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2pqdWFu/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+![enter image description here](https://i.imgur.com/TcJLN9W.png)
 图中有两个文件：  
 （1）fsimage:文件系统映射文件，也是元数据的镜像文件（磁盘中），存储某段时间namenode内存元数据信息。  
 （2）edits log:操作日志文件。  
@@ -82,7 +82,7 @@ SecondaryNameNode有两个作用，一是镜像备份，二是日志与镜像的
 
 **Secondary NameNode创建检查点过程**
 
-![enter image description here](https://img-blog.csdn.net/20170503103823737?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2pqdWFu/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+![enter image description here](https://i.imgur.com/LumHha1.png)
 
 **Secondarynamenode工作过程**  
 （1）SecondaryNameNode通知NameNode准备提交edits文件，此时主节点将新的写操作数据记录到一个新的文件edits.new中。  
