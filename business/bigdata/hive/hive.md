@@ -217,6 +217,23 @@ jps可以看到有一个**RunJar**进程，这就是hiveserver2
       
     }
 
+## 坑（windows客户端连接Hive）
+*  针对问题：
+
+> hadoop2.9.0，运用客户端连接hiveserver2报错 HADOOP_HOME and hadoop.home.dir are unset
+
+  * 文件下载地址
+	  [https://pan.baidu.com/s/1H5nba7mHTuv90rGUrJjotA](https://pan.baidu.com/s/1H5nba7mHTuv90rGUrJjotA)
+ 
+* 解决办法：
+
+1. 将文件解压到hadoop的bin目录下  
+2. 将hadoop.dll复制到C:\Window\System32下  
+3. 添加环境变量HADOOP_HOME，指向hadoop目录  
+4. 将%HADOOP_HOME%\bin加入到path里面
+5. 重启IDE，或者在代码首行添加：
+> System.setProperty("hadoop.home.dir", "E:\\hadoop-2.9.0");
+
 
 # Hive中的表
 
