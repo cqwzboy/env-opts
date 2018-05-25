@@ -303,6 +303,32 @@ e.printStackTrace();<br>
 <p>}</p>
 </li>
 </ul>
+<h2 id="坑（windows客户端连接hive）">坑（windows客户端连接Hive）</h2>
+<ul>
+<li>针对问题：</li>
+</ul>
+<blockquote>
+<p>hadoop2.9.0，运用客户端连接hiveserver2报错 HADOOP_HOME and hadoop.home.dir are unset</p>
+</blockquote>
+<ul>
+<li>
+<p>文件下载地址<br>
+<a href="https://pan.baidu.com/s/1H5nba7mHTuv90rGUrJjotA">https://pan.baidu.com/s/1H5nba7mHTuv90rGUrJjotA</a></p>
+</li>
+<li>
+<p>解决办法：</p>
+</li>
+</ul>
+<ol>
+<li>将文件解压到hadoop的bin目录下</li>
+<li>将hadoop.dll复制到C:\Window\System32下</li>
+<li>添加环境变量HADOOP_HOME，指向hadoop目录</li>
+<li>将%HADOOP_HOME%\bin加入到path里面</li>
+<li>重启IDE，或者在代码首行添加：</li>
+</ol>
+<blockquote>
+<p>System.setProperty(“hadoop.home.dir”, “E:\hadoop-2.9.0”);</p>
+</blockquote>
 <h1 id="hive中的表">Hive中的表</h1>
 <h2 id="managed-table">managed table</h2>
 <p><strong>托管表</strong> - 删除表时（Mysql上），数据也一并删除（HDFS上）</p>
