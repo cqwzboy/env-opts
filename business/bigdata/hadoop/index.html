@@ -481,6 +481,16 @@ stop-dfs.sh
 	   &lt;name&gt;ha.zookeeper.quorum&lt;/name&gt;
 	   &lt;value&gt;itaojin105:2181,itaojin106:2181,itaojin107:2181&lt;/value&gt;
 	 &lt;/property&gt;
+	
+	&lt;!-- OOZIE --&gt;
+	&lt;property&gt;
+        &lt;name&gt;hadoop.proxyuser.root.hosts&lt;/name&gt;
+        &lt;value&gt;itaojin101&lt;/value&gt;
+    &lt;/property&gt;
+    &lt;property&gt;
+        &lt;name&gt;hadoop.proxyuser.root.groups&lt;/name&gt;
+        &lt;value&gt;root&lt;/value&gt;
+    &lt;/property&gt;
 &lt;/configuration&gt;
 </code></pre>
 <h5 id="hdfs-site.xml">hdfs-site.xml</h5>
@@ -607,7 +617,7 @@ zkServer.sh start
 </li>
 <li>
 <p>在itaojin101，itaojin102，itaojin103上分别执行：</p>
-<p><a href="http://hadoop-daemons.sh">hadoop-daemons.sh</a> start journalnode</p>
+<p><a href="http://hadoop-daemon.sh">hadoop-daemon.sh</a> start journalnode</p>
 </li>
 </ul>
 <p>使用jps验证是否启动成功</p>
@@ -840,6 +850,15 @@ YARN总体上仍然是master/slave结构，在整个资源管理框架中，reso
 	&lt;property&gt;
 	  &lt;name&gt;yarn.resourcemanager.hostname.rm2&lt;/name&gt;
 	  &lt;value&gt;itaojin102&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;!--RM的applications manager(ASM)端口--&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.address.rm1&lt;/name&gt;
+	  &lt;value&gt;itaojin101:8032&lt;/value&gt;
+	&lt;/property&gt;
+	&lt;property&gt;
+	  &lt;name&gt;yarn.resourcemanager.address.rm2&lt;/name&gt;
+	  &lt;value&gt;itaojin102:8032&lt;/value&gt;
 	&lt;/property&gt;
 	&lt;!--指定shuffle--&gt;
 	&lt;property&gt;
@@ -1231,6 +1250,7 @@ hadoop is better</p>
 </li>
 </ol>
 </div>
+
 <!-- ***********************************************************内容分割线****************************************************************** -->
 
                 </article>

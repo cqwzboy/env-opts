@@ -495,7 +495,7 @@ export JAVA_HOME=/usr/local/java/jdk1.8.0_152
 * hadoop-daemons.sh start journalnode  将注册的全部journalnode启动，**但是遇到一个坑--没在itaojin101，itaojin102，itaojin103上启动，而是在itaojin103，itaojin106，itaojin107上，对，跟slaves的配置保持了一致，但是slaves是配置DataNode节点的，目前还不知道为什么，推荐使用第二种方式启动。**
 * 在itaojin101，itaojin102，itaojin103上分别执行：
 
-    hadoop-daemons.sh start journalnode
+    hadoop-daemon.sh start journalnode
 
 使用jps验证是否启动成功
 
@@ -732,6 +732,15 @@ yarn允许用户配置每个节点上可用的物理内存资源，注意，这�
     	  <name>yarn.resourcemanager.hostname.rm2</name>
     	  <value>itaojin102</value>
     	</property>
+    	<!--RM的applications manager(ASM)端口-->
+		<property>
+		  <name>yarn.resourcemanager.address.rm1</name>
+		  <value>itaojin101:8032</value>
+		</property>
+		<property>
+		  <name>yarn.resourcemanager.address.rm2</name>
+		  <value>itaojin102:8032</value>
+		</property>
     	<!--指定shuffle-->
     	<property>
     		<name>yarn.nodemanager.aux-services</name>
