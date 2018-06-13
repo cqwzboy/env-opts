@@ -515,6 +515,310 @@ FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTa
 <p>注意：<code>--query</code>后如果是双引号(" ")，则where条件后跟随 <code>\$CONDITIONS</code>；如果是单引号(’ ')，则where后面跟随 <code>$CONDITIONS</code></p>
 </li>
 </ul>
+<h3 id="并行控制">并行控制</h3>
+<p>即控制Map Task并行计算的机制</p>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-m, --num-mappers</td>
+<td>设置Map Task的并行数量</td>
+</tr>
+</tbody>
+</table><ul>
+<li>
+<p>默认情况下，该参数被设置为 4</p>
+</li>
+<li>
+<p>增加Map Task的数量能显著提高计算效率，但是也不是数量越大越好，一般情况下，此数量不要超过Hadoop集群中的NodeManager节点数。</p>
+</li>
+<li>
+<p>Sqoop有一套切割工作量的策略。默认情况下，Sqoop会识别数据库中表的主键作为<strong>分割字段（splitting column）</strong>，与此同时，Sqoop会通过<strong>SELECT MAX(split-column), MIN(split-column) FROM _TABLE</strong>查询语句查询出最大和最小值，以此作为数据集合的边界，然后根据**–num-mappers**设置的数量均分边界范围，以此来达到将总数据平均分配到每个Map Task上。举个例子：有张表主键为id，且最小最大值分别为0,1000，Sqoop默认使用4个Map Task，Sqoop会分别启动四个进程，且分别执行SQL查询：</p>
+<blockquote>
+<p>SELECT * FROM _TABLE WHERE id &gt;=0 AND id&lt;250;<br>
+SELECT * FROM _TABLE WHERE id &gt;=250 AND id&lt;500;<br>
+SELECT * FROM _TABLE WHERE id &gt;=500 AND id&lt;750;<br>
+SELECT * FROM _TABLE WHERE id &gt;=750 AND id&lt;1000;</p>
+</blockquote>
+<p>从而确定每个Map Task的数据集合。</p>
+</li>
+<li>
+<p>从上面的描述中，会发现有两个地方值得注意：<br>
+1. <strong>分割字段必须是num型或者date型，因为Sqoop会依据此字段做最大最小边界查询。</strong><br>
+2. <strong>分割字段的选取，最好遵循其变化范围是均匀分布的准则，否则导致每个Map Task分配的任务不均导致整体性能下降（木桶原理）。</strong><br>
+If the actual values for the primary key are not uniformly distributed across its range, then this can result in unbalanced tasks.</p>
+</li>
+<li>
+<p>当表格的主键的取值范围分布不均时，可以通过<code>--split-by</code>指令重新指定分割字段。</p>
+</li>
+<li>
+<p>User can override the <code>--num-mapers</code> by using <code>--split-limit</code> option. Using the <code>--split-limit</code> parameter places a limit on the size of the split section created. If the size of the split created is larger than the size specified in this parameter, then the splits would be resized to fit within this limit, and the number of splits will change according to that.This affects actual number of mappers. If size of a split calculated based on provided <code>--num-mappers</code> parameter exceeds <code>--split-limit</code> parameter then actual number of mappers will be increased.If the value specified in <code>--split-limit</code> parameter is 0 or negative, the parameter will be ignored altogether and the split size will be calculated according to the number of mappers.</p>
+</li>
+<li>
+<p>如果表格没有主键，且也没有定义分割字段，	可以将Map Task的数量设置成1即可，<code>--num-mappers 1</code> 或 <code>-m 1</code>，否则会报错。</p>
+</li>
+</ul>
+<h3 id="分布式缓存">分布式缓存</h3>
+<p>当Sqoop每次开启job时，都会将<code>$SQOOP_HOME/lib</code>文件夹拷贝到job的缓存中。当Sqoop被Oozie调度时，这种拷贝是很没有必要的，因为Oozie在分布式缓存中拥有包含了Sqoop所有依赖的且属于自己的Sqoop共享lib。当oozie集群中的每一个节点<strong>首次</strong>执行Sqoop job时会将Sqoop共享lib在每个工作节点上实现本地化缓存，当以后的job再次执行，直接复用本地缓存jar。<strong>所以，当Sqoop被Oozie调度时，使用 <code>--skip-dist-cache</code>指令使得Oozie跳过Sqoop拷贝jar至job缓存的过程，从而可以节省大量的 I/O</strong></p>
+<p>官方原文如下：</p>
+<blockquote>
+<p>Sqoop will copy the jars in $SQOOP_HOME/lib folder to job cache every time when start a Sqoop job. When launched by Oozie this is unnecessary since Oozie use its own Sqoop share lib which keeps Sqoop dependencies in the distributed cache. Oozie will do the localization on each worker node for the Sqoop dependencies only once during the first Sqoop job and reuse the jars on worker node for subsquencial jobs. Using option <code>--skip-dist-cache</code> in Sqoop command when launched by Oozie will skip the step which Sqoop copies its dependencies to job cache and save massive I/O.</p>
+</blockquote>
+<h3 id="direct模式">direct模式</h3>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>–direct</td>
+<td>开启direct模式，Sqoop将采用mysqldump工具导出数据</td>
+</tr>
+</tbody>
+</table><p>默认情况下，采用JDBC直连的方式为数据导入提供数据通道。</p>
+<p>很多数据库都有比较高效的数据导入/导出工具，例如MySQL数据库的<code>mysqldump</code>。只需提供指令<code>--direct</code>就能开启<strong>direct模式</strong>，这种模式下的数据通道在效率上高于JDBC直连方式。</p>
+<p>当采用direct模式时，还可以指定额外参数，通过指令 <code>--</code> 指定额外参数，举例：</p>
+<blockquote>
+<p>sqoop import --connect &lt;jdbc_url&gt; --username  \<br>
+–password  --table &lt;table_name&gt; --direct \<br>
+– --default-character-set=latin1</p>
+</blockquote>
+<h3 id="事务隔离级别">事务隔离级别</h3>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--relaxed-isolation</code></td>
+<td>Sqoop开启<strong>读未提交</strong>事务隔离级别</td>
+</tr>
+</tbody>
+</table><p>事务隔离级别分为四种：</p>
+<ul>
+<li>
+<p><strong>Read uncommitted</strong><br>
+读未提交，顾名思义，就是一个事务可以读取另一个未提交事务的数据。</p>
+<p>事例：老板要给程序员发工资，程序员的工资是3.6万/月。但是发工资时老板不小心按错了数字，按成3.9万/月，该钱已经打到程序员的户口，但是事务还没有提交，就在这时，程序员去查看自己这个月的工资，发现比往常多了3千元，以为涨工资了非常高兴。但是老板及时发现了不对，马上回滚差点就提交了的事务，将数字改成3.6万再提交。</p>
+<p>分析：实际程序员这个月的工资还是3.6万，但是程序员看到的是3.9万。他看到的是老板还没提交事务时的数据。这就是脏读。<br>
+那怎么解决脏读呢？Read committed！读提交，能解决脏读问题。</p>
+</li>
+<li>
+<p><strong>Read committed</strong><br>
+读提交，顾名思义，就是一个事务要等另一个事务提交后才能读取数据。<br>
+事例：程序员拿着信用卡去享受生活（卡里当然是只有3.6万），当他埋单时（程序员事务开启），收费系统事先检测到他的卡里有3.6万，就在这个时候！！程序员的妻子要把钱全部转出充当家用，并提交。当收费系统准备扣款时，再检测卡里的金额，发现已经没钱了（第二次检测金额当然要等待妻子转出金额事务提交完）。程序员就会很郁闷，明明卡里是有钱的…<br>
+分析：这就是读提交，若有事务对数据进行更新（UPDATE）操作时，读操作事务要等待这个更新操作事务提交后才能读取数据，可以解决脏读问题。但在这个事例中，出现了一个事务范围内两个相同的查询却返回了不同数据，这就是不可重复读。<br>
+那怎么解决可能的不可重复读问题？Repeatable read ！</p>
+</li>
+<li>
+<p><strong>Repeatable read</strong><br>
+重复读，就是在开始读取数据（事务开启）时，不再允许修改操作<br>
+事例：程序员拿着信用卡去享受生活（卡里当然是只有3.6万），当他埋单时（事务开启，不允许其他事务的UPDATE修改操作），收费系统事先检测到他的卡里有3.6万。这个时候他的妻子不能转出金额了。接下来收费系统就可以扣款了。<br>
+分析：重复读可以解决不可重复读问题。写到这里，应该明白的一点就是，不可重复读对应的是修改，即UPDATE操作。但是可能还会有幻读问题。因为幻读问题对应的是插入INSERT操作，而不是UPDATE操作。<br>
+原文链接：<a href="https://blog.csdn.net/qq_33290787/article/details/51924963">https://blog.csdn.net/qq_33290787/article/details/51924963</a></p>
+</li>
+</ul>
+<p>言归正传，默认情况下，Sqoop采用<strong>读提交（read committed）<strong>事务隔离级别，在工作流的ETL整个过程中，这或许不是一个完全使用的隔离级别。通过指令 <code>--relaxed-isolation</code> 能让Sqoop采用</strong>读未提交</strong>的事务隔离级别。</p>
+<p><strong>Tips</strong>： <strong>读未提交</strong>事务隔离级别不适用与全部的数据库，比如Oracle，所以在指定<code>--relaxed-isolation</code>指令时应该根据业务中采用的数据库而定。</p>
+<h3 id="控制字段类型映射">控制字段类型映射</h3>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--map-column-java &lt;mapping&gt;</code></td>
+<td>覆盖默认的从SQL到Java的映射规则，字段之间以<strong>逗号</strong>隔离</td>
+</tr>
+<tr>
+<td><code>--map-column-hive &lt;mapping&gt;</code></td>
+<td>覆盖默认的从SQL到Hive的映射规则，字段之间以<strong>逗号</strong>隔离</td>
+</tr>
+</tbody>
+</table><p>什么是字段类型映射？当Sqoop将数据从关系型数据导出数据时，会将数据库中的每个字段映射到Java或者Hive中的字段，这时就存在字段类型转换的问题。</p>
+<p>Sqoop被预先配置为将大多数SQL类型映射到适当的Java或Hive代表，但是默认的映射机制可能不适用于全部的场景，这时就可以通过指令 <code>--map-column-java</code>（改变数据映射到Java的规则）和 <code>--map-column-hive</code> （改变数据映射到Hive的规则）</p>
+<p>举例：</p>
+<blockquote>
+<p>sqoop import … --map-column-java id=String,value=Integer</p>
+</blockquote>
+<p><strong>Tips</strong>:</p>
+<ul>
+<li>当指定 <code>--map-column-hive &lt;mapping&gt;</code> 时，字段和类型必须要经过<strong>URL编码</strong>后才能使用，举例，用 <strong>DECIMAL(1%2C%201)</strong> 替代 <strong>DECIMAL(1, 1)</strong>）</li>
+<li>Sqoop将直接抛出类型映射的异常。</li>
+</ul>
+<h3 id="schema-name-handling">Schema name handling</h3>
+<p>当Sqoop从企业应用导入数据时，表名和字段名可能含有Java或者Avro/Parquet不识别的特殊字符。为了解决这个问题，Sqoop将这些特殊字符转换成 <code>_</code> ，且任何以 <code>_</code> 开头的名称都会转为 <code>__</code>，例如，<code>_AVRO</code>被转换为<code>__AVRO</code></p>
+<h3 id="增量导入">增量导入</h3>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--check-column (col)</code></td>
+<td>指定被检查列，该列不能是CHAR/NCHAR/VARCHAR/VARNCHAR/ LONGVARCHAR/LONGNVARCHAR类型，最好用num或者date类型</td>
+</tr>
+<tr>
+<td><code>--incremental (mode)</code></td>
+<td>指定Sqoop确定新行的模式，取值为 <code>append</code> 和 <code>lastmodified</code></td>
+</tr>
+<tr>
+<td><code>--last-value (value)</code></td>
+<td>设定被检查列在历史数据集合中的最大值，用于边界作用</td>
+</tr>
+</tbody>
+</table><p>两种增量模式：</p>
+<ul>
+<li>append ： 主要用于导入相比于历史数据是新增的数据</li>
+<li>lastmodified：主要用于更新导入对历史数据的更改。值得注意的是，使用该模式时，必须加上指令 <code>--append</code> 或者 <code>--merge-key &lt;column&gt;</code>，否则会报错：<br>
+<code>ERROR tool.ImportTool: Import failed: --merge-key or --append is required when using --incremental lastmodified and the output directory exists.</code></li>
+</ul>
+<p>举例：</p>
+<blockquote>
+<p>sqoop import --connect jdbc:mysql://localhost:3306/test \<br>
+–username test --password test --table customertest  \<br>
+–target-dir /user/sqoop1/test -m 1 --direct \<br>
+–check-column id \<br>
+–incremental append \<br>
+–last-value 5</p>
+</blockquote>
+<blockquote>
+<p>sqoop import --connect jdbc:mysql://localhost:3306/test \<br>
+–username test --password test --table customertest \<br>
+–target-dir /user/sqoop1/test -m 1 --direct \<br>
+–check-column last_mod \<br>
+–incremental lastmodified \<br>
+–last-value ‘2018-06-13 15:04:28’  \<br>
+–append</p>
+</blockquote>
+<h3 id="文件格式">文件格式</h3>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-z, --compress</code></td>
+<td>将数据压缩成gzip格式</td>
+</tr>
+<tr>
+<td><code>--compression-codec</code></td>
+<td>执行Hadoop任意的压缩格式</td>
+</tr>
+</tbody>
+</table><p>导入的文件有两种格式：<strong>分割文本</strong> 和 <strong>序列化文件</strong><br>
+默认情况下，文件导入采用分割文本的格式，也可以显式的指定导入文件的格式为分割文本：<code>--as-textfile</code> 。</p>
+<p>序列化文件以二进制格式被存储，相比分割文本，序列化文件具有更高读取性能。</p>
+<h3 id="导入数据到hive">导入数据到Hive</h3>
+
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hive-home &lt;dir&gt;</code></td>
+<td>覆盖 <code>$HIVE_HOME</code></td>
+</tr>
+<tr>
+<td><code>--hive-import</code></td>
+<td>导入数据至Hive</td>
+</tr>
+<tr>
+<td><code>--hive-overwrite</code></td>
+<td>覆盖Hive中已存在Table中的数据</td>
+</tr>
+<tr>
+<td><code>--create-hive-table</code></td>
+<td>设置后，如果Hive中目标Table已经存在，则job将失败，默认该属性未开启</td>
+</tr>
+<tr>
+<td><code>--hive-table &lt;table-name&gt;</code></td>
+<td>导入Hive中的Table名</td>
+</tr>
+<tr>
+<td><code>--hive-drop-import-delims</code></td>
+<td>当导入数据时，将字段中的<code>_\n_, _\r_, and _\01_</code>删除</td>
+</tr>
+<tr>
+<td><code>--hive-delims-replacement &lt;replace_string&gt;</code></td>
+<td>当导入数据时，使用给定的字符串替换<code>_\n_, _\r_, and _\01_</code>等字符</td>
+</tr>
+<tr>
+<td><code>--hive-partition-key &lt;key&gt;</code></td>
+<td>指定用于分片的字段名称</td>
+</tr>
+<tr>
+<td><code>--hive-partition-value &lt;v&gt;</code></td>
+<td>本次导入的分片值</td>
+</tr>
+<tr>
+<td><code>--map-column-hive &lt;map&gt;</code></td>
+<td>覆盖默认的SQL与Hive字段类型转换规则，在值中如果包含逗号，则值必须进行URL编码，举例：DECIMAL(1, 1)改写成DECIMAL(1%2C%201)</td>
+</tr>
+</tbody>
+</table><ul>
+<li>
+<p>将关系型数据库数据导入Hive分两步：<br>
+1. 先将数据从关系型数据库导入HDFS<br>
+2. 再将数据从HDFS导入Hive</p>
+</li>
+<li>
+<p>如果关系型数据库中每行数据的某些字段包含Hive默认的<strong>行分隔符 (<code>\n</code>和<code>\r</code>)  或者 字段分隔符(<code>\01</code> characters)</strong>，可以使用<code>--hive-drop-import-delims</code>指令来删除这些字符，也可以使用指令<code>--hive-delims-replacement</code>用用户自定义字符替换掉特殊字符。</p>
+</li>
+<li>
+<p>如果关系型数据库中字段值为NULL，则在Hive被映射为<code>null</code>。在Hive中，用字符串<code>\N</code>标示NULL值，<code>\\N</code>标示空字符串.</p>
+</li>
+</ul>
+<blockquote>
+<p>$ sqoop import  … --null-string ‘\N’ --null-non-string ‘\N’</p>
+</blockquote>
+<ul>
+<li>如果不适用指令<code>--hive-table</code>，则Sqoop将关系型数据库表名直接用于Hive表名，如果指定，则可以生成用户指定的表名。</li>
+<li>Hive can put data into partitions for more efficient query performance. You can tell a Sqoop job to import data for Hive into a particular partition by specifying the <code>--hive-partition-key</code> and <code>--hive-partition-value</code> arguments. The partition value must be a string.</li>
+<li>例子：</li>
+</ul>
+<blockquote>
+<p>sqoop import  \ 	<br>
+–hive-import \ 	<br>
+–hive-table hive_customer_test \<br>
+–connect jdbc:mysql://localhost:3306/local \ 	<br>
+–username local \<br>
+–password local \ 	<br>
+–table customertest \ 	<br>
+–target-dir /user/sqoop1/test \ 	<br>
+-m 1 \ 	<br>
+–direct</p>
+</blockquote>
 </div>
 
 <!-- ***********************************************************内容分割线****************************************************************** -->
