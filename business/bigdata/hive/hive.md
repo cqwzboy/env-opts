@@ -149,6 +149,11 @@ Hive是一个数据仓库基础工具在Hadoop中用来处理结构化数据。�
     hive --service hiveserver2 &
     或者
     hiveserver2 $
+
+后台启动：
+
+> nohup hive --service hiveserver2 &
+
 即可后台启动**hiveserver2**进程
 jps可以看到有一个**RunJar**进程，这就是hiveserver2
 
@@ -268,6 +273,96 @@ Tip:
 | 外部表 | 4 | 6 |
 
 **为了加强知识吸收，强烈建议通过命令行亲自验证以上结论**
+
+# 数据类型
+Hive的数据类型主要分为 **基本数据类型** 和 **集合数据类型** 两大类。
+
+## 基本数据类型
+| 数据类型 | 长度 | 例子 |
+|--|--|--|
+| TINYINT | 1byte有符号整数 | 20 |
+| SMALINT | 2byte有符号整数 | 20 |
+| INT | 4byte有符号整数 | 20 |
+| BIGINT | 8byte有符号整数 | 20 |
+| BOOLEAN | 布尔类型，true或者false | true |
+| FLOAT | 单精度浮点数 | 3.1415 |
+| DOUBLE | 双精度浮点数 | 3.1415 |
+| STRING | 字符序列。可以使用单引号或者双引号 | "hello",'world' |
+| TIMESTAMP(v0.8.0+) | 整数，浮点数或者字符串 | ①1327882394（Unix新纪元秒）②1327882394.123456789(Unix新纪元秒并跟随有纳秒数)③'2018-06-19 14:42:30.123456789'(JDBC所兼容的java.sql.Timestamp时间格式) |
+| BINARY(v0.8.0+) | 字节数组 |  |
+
+## 集合数据类型
+| 数据类型 | 描述 | 字面语法示例 |
+|--|--|--|
+| STRUCT | 可以通过“点”符号访问元素内容。例如某个列的数据类型是STRUCT<first:string,last:string，那么第一个元素可以通过 字段名.first来引用> | struct('John','Doe') |
+| MAP | MAP是一组键-值对元组集合，使用数组表示法(例如['key'])可以访问元素。例如某个字段数据类型是MAP，其中键->值对是'first'->'John'和'last'->'Doe'，那么可以通过 字段名['first']来引用第一个元素 | map('first','John','last','Doe') |
+| ARRAY | 数组是一组具有相同类型和名称的变量的集合。这些变量称为数组的元素，每个数组元素都有一个编号，从0开始。 | Array('John','Doe') |
+
+## 举例
+1. SQL：
+
+	> create external table t11 (
+	>  id int, 
+	>  name string, 
+	>  info struct<address:string, age:int, birthday:string>, 
+	>  education map<string, string>, 
+	>  hobby array<string> 
+	>  ) 
+	>  row format delimited 
+	>  fields terminated by ',' 
+	>  collection items terminated by '&' 
+	>  map keys terminated by ':' 
+	>  lines terminated by '\n' 
+	>  stored as textfile;
+
+	解读：
+	* 定义了基本数据类型的id和name字段，和集合数据类型的info，education和hobby字段
+	* 字段之间以 `,` 分割
+	* 集合内部元素之间以 `&` 分割
+	* MAP的键-值对之间以 `:` 分割
+	* 行以 `\n` 分割
+	* 数据以文本形式存储
+
+2. 测试数据：
+
+	    将以下测试数据拷贝到一个文件里，这里的文件名称是t11.txt，位于root根目录下
+	    
+	    1,zhangsan,chengdu&23&1990-11-06,primary school:nonganxiaoxue0&junior:xiangshuizhongxue0&high school:wanerzhong0&university:liaoning0,outdoor&riding&sleep
+	    2,lisi,shanghai&23&1991-11-06,primary school:nonganxiaoxue1&junior:xiangshuizhongxue1&high school:wanerzhong1&university:liaoning1,eat&sleep
+	    3,wangwu,chongqing&23&1992-11-06,primary school:nonganxiaoxue2&junior:xiangshuizhongxue2&high school:wanerzhong2&university:liaoning2,shopping
+	    4,zhaoliu,wuhan&23&1993-11-06,primary school:nonganxiaoxue3&junior:xiangshuizhongxue3&high school:wanerzhong3&university:liaoning3,watching
+	    5,heqi,beijing&23&1994-11-06,primary school:nonganxiaoxue4&junior:xiangshuizhongxue4&high school:wanerzhong4&university:liaoning4,thinking
+	    6,qiuba,kunming&23&1995-11-06,primary school:nonganxiaoxue5&junior:xiangshuizhongxue5&high school:wanerzhong5&university:liaoning5,busketball
+
+3. 导入数据到Hive
+
+	> load data local inpath '/root/t11.txt' into table t11;
+
+4. 查询数据
+
+	* 全表查询
+		> select * from t11;
+
+		![enter image description here](https://i.imgur.com/ybQDdcd.png)
+
+	* 查询STRUCT数据类型的数据
+
+		> select info.address from t11;
+
+		![enter image description here](https://i.imgur.com/92Vb6hM.png)
+
+	* 查询MAP数据类型的数据
+
+		> select education['junior'] from t11;
+
+		![enter image description here](https://i.imgur.com/7cuMqrk.png)
+
+	* 查询ARRAY数据类型的数据
+
+		> select hobby[0] from t11;
+
+		![enter image description here](https://i.imgur.com/lx1yC0X.png)
+
 
 # Hive命令
 

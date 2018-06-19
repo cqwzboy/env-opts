@@ -244,6 +244,10 @@ select * from t;
 或者
 hiveserver2 $
 </code></pre>
+<p>后台启动：</p>
+<blockquote>
+<p>nohup hive --service hiveserver2 &amp;</p>
+</blockquote>
 <p>即可后台启动<strong>hiveserver2</strong>进程<br>
 jps可以看到有一个<strong>RunJar</strong>进程，这就是hiveserver2</p>
 <h2 id="beeline">beeline</h2>
@@ -391,6 +395,178 @@ e.printStackTrace();<br>
 </tr>
 </tbody>
 </table><p><strong>为了加强知识吸收，强烈建议通过命令行亲自验证以上结论</strong></p>
+<h1 id="数据类型">数据类型</h1>
+<p>Hive的数据类型主要分为 <strong>基本数据类型</strong> 和 <strong>集合数据类型</strong> 两大类。</p>
+<h2 id="基本数据类型">基本数据类型</h2>
+
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>长度</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TINYINT</td>
+<td>1byte有符号整数</td>
+<td>20</td>
+</tr>
+<tr>
+<td>SMALINT</td>
+<td>2byte有符号整数</td>
+<td>20</td>
+</tr>
+<tr>
+<td>INT</td>
+<td>4byte有符号整数</td>
+<td>20</td>
+</tr>
+<tr>
+<td>BIGINT</td>
+<td>8byte有符号整数</td>
+<td>20</td>
+</tr>
+<tr>
+<td>BOOLEAN</td>
+<td>布尔类型，true或者false</td>
+<td>true</td>
+</tr>
+<tr>
+<td>FLOAT</td>
+<td>单精度浮点数</td>
+<td>3.1415</td>
+</tr>
+<tr>
+<td>DOUBLE</td>
+<td>双精度浮点数</td>
+<td>3.1415</td>
+</tr>
+<tr>
+<td>STRING</td>
+<td>字符序列。可以使用单引号或者双引号</td>
+<td>“hello”,‘world’</td>
+</tr>
+<tr>
+<td>TIMESTAMP(v0.8.0+)</td>
+<td>整数，浮点数或者字符串</td>
+<td>①1327882394（Unix新纪元秒）②1327882394.123456789(Unix新纪元秒并跟随有纳秒数)③’2018-06-19 14:42:30.123456789’(JDBC所兼容的java.sql.Timestamp时间格式)</td>
+</tr>
+<tr>
+<td>BINARY(v0.8.0+)</td>
+<td>字节数组</td>
+<td></td>
+</tr>
+</tbody>
+</table><h2 id="集合数据类型">集合数据类型</h2>
+
+<table>
+<thead>
+<tr>
+<th>数据类型</th>
+<th>描述</th>
+<th>字面语法示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>STRUCT</td>
+<td>可以通过“点”符号访问元素内容。例如某个列的数据类型是STRUCT&lt;first:string,last:string，那么第一个元素可以通过 字段名.first来引用&gt;</td>
+<td>struct(‘John’,‘Doe’)</td>
+</tr>
+<tr>
+<td>MAP</td>
+<td>MAP是一组键-值对元组集合，使用数组表示法(例如[‘key’])可以访问元素。例如某个字段数据类型是MAP，其中键-&gt;值对是’first’-&gt;‘John’和’last’-&gt;‘Doe’，那么可以通过 字段名[‘first’]来引用第一个元素</td>
+<td>map(‘first’,‘John’,‘last’,‘Doe’)</td>
+</tr>
+<tr>
+<td>ARRAY</td>
+<td>数组是一组具有相同类型和名称的变量的集合。这些变量称为数组的元素，每个数组元素都有一个编号，从0开始。</td>
+<td>Array(‘John’,‘Doe’)</td>
+</tr>
+</tbody>
+</table><h2 id="举例">举例</h2>
+<ol>
+<li>
+<p>SQL：</p>
+<blockquote>
+<p>create external table t11 (<br>
+id int,<br>
+name string,<br>
+info struct&lt;address:string, age:int, birthday:string&gt;,<br>
+education map&lt;string, string&gt;,<br>
+hobby array<br>
+)<br>
+row format delimited<br>
+fields terminated by ','<br>
+collection items terminated by '&amp;'<br>
+map keys terminated by ':'<br>
+lines terminated by '\n’<br>
+stored as textfile;</p>
+</blockquote>
+<p>解读：</p>
+<ul>
+<li>定义了基本数据类型的id和name字段，和集合数据类型的info，education和hobby字段</li>
+<li>字段之间以 <code>,</code> 分割</li>
+<li>集合内部元素之间以 <code>&amp;</code> 分割</li>
+<li>MAP的键-值对之间以 <code>:</code> 分割</li>
+<li>行以 <code>\n</code> 分割</li>
+<li>数据以文本形式存储</li>
+</ul>
+</li>
+<li>
+<p>测试数据：</p>
+<pre><code> 将以下测试数据拷贝到一个文件里，这里的文件名称是t11.txt，位于root根目录下
+ 
+ 1,zhangsan,chengdu&amp;23&amp;1990-11-06,primary school:nonganxiaoxue0&amp;junior:xiangshuizhongxue0&amp;high school:wanerzhong0&amp;university:liaoning0,outdoor&amp;riding&amp;sleep
+ 2,lisi,shanghai&amp;23&amp;1991-11-06,primary school:nonganxiaoxue1&amp;junior:xiangshuizhongxue1&amp;high school:wanerzhong1&amp;university:liaoning1,eat&amp;sleep
+ 3,wangwu,chongqing&amp;23&amp;1992-11-06,primary school:nonganxiaoxue2&amp;junior:xiangshuizhongxue2&amp;high school:wanerzhong2&amp;university:liaoning2,shopping
+ 4,zhaoliu,wuhan&amp;23&amp;1993-11-06,primary school:nonganxiaoxue3&amp;junior:xiangshuizhongxue3&amp;high school:wanerzhong3&amp;university:liaoning3,watching
+ 5,heqi,beijing&amp;23&amp;1994-11-06,primary school:nonganxiaoxue4&amp;junior:xiangshuizhongxue4&amp;high school:wanerzhong4&amp;university:liaoning4,thinking
+ 6,qiuba,kunming&amp;23&amp;1995-11-06,primary school:nonganxiaoxue5&amp;junior:xiangshuizhongxue5&amp;high school:wanerzhong5&amp;university:liaoning5,busketball
+</code></pre>
+</li>
+<li>
+<p>导入数据到Hive</p>
+<blockquote>
+<p>load data local inpath ‘/root/t11.txt’ into table t11;</p>
+</blockquote>
+</li>
+<li>
+<p>查询数据</p>
+<ul>
+<li>
+<p>全表查询</p>
+<blockquote>
+<p>select * from t11;</p>
+</blockquote>
+<p><img src="https://i.imgur.com/ybQDdcd.png" alt="enter image description here"></p>
+</li>
+<li>
+<p>查询STRUCT数据类型的数据</p>
+<blockquote>
+<p>select info.address from t11;</p>
+</blockquote>
+<p><img src="https://i.imgur.com/92Vb6hM.png" alt="enter image description here"></p>
+</li>
+<li>
+<p>查询MAP数据类型的数据</p>
+<blockquote>
+<p>select education[‘junior’] from t11;</p>
+</blockquote>
+<p><img src="https://i.imgur.com/7cuMqrk.png" alt="enter image description here"></p>
+</li>
+<li>
+<p>查询ARRAY数据类型的数据</p>
+<blockquote>
+<p>select hobby[0] from t11;</p>
+</blockquote>
+<p><img src="https://i.imgur.com/lx1yC0X.png" alt="enter image description here"></p>
+</li>
+</ul>
+</li>
+</ol>
 <h1 id="hive命令">Hive命令</h1>
 <h2 id="创建表">创建表</h2>
 <blockquote>
