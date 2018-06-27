@@ -474,6 +474,23 @@ ERROR : Job Submission failed with exception 'org.apache.hadoop.security.AccessC
 <li>不能从外部直接导数据到Hive，例如sqoop</li>
 <li>当Hive和HBase存在关联表时，也不能从外部导数据到HBase</li>
 </ul>
+<h1 id="sqoop1">Sqoop1</h1>
+<p>ClouderaManager默认已经安装了Sqoop1组件，且已经配置了环境变量，直接使用即可。</p>
+<p>Sqoop1的使用不再赘述，相关章节已经有说明，下面主要讲讲在导数据过程中遇到的一些问题。</p>
+<h2 id="导入hbase">导入HBase</h2>
+<p>当把数据从关系型数据库导入HBase时，HBase中的表既可以事先建好，也可以让sqoop自动映射新建。</p>
+<p>在关系型数据库中，表的主键大致可以分为 <strong>单主键</strong> 和 <strong>联合主键</strong>，并且还要考虑到表 <strong>无主键</strong> 的情况，所以在导入HBase时都要考虑 到。</p>
+<h3 id="单主键">单主键</h3>
+<p>通过 <code>--hbase-row-key &lt;row_key&gt;</code> 来指定HBase表中的rowKey。</p>
+<h3 id="联合主键">联合主键</h3>
+<p>如果关系型数据库中出现联合主键，则可以通过 <code>--hbase-row-key &lt;row_key_1&gt;, &lt;row_key_2&gt;[...]</code>来制定联合主键，HBase会把多个主键以 <code>_</code> 的形式拼接起来作为rowKey，但是联合主键就不在正常字段中展示，如果想让联合主键在正常字段中冗余存在，可以在Sqoop的<code>sqoop-site.xml</code>文件中添加如下配置：</p>
+<pre><code>&lt;property&gt;
+        &lt;name&gt;sqoop.hbase.add.row.key&lt;/name&gt;
+        &lt;value&gt;true&lt;/value&gt;
+&lt;/property&gt;
+</code></pre>
+<p>ClouderaManager环境下，该文件在 <code>/etc/sqoop/conf</code> 目录下。</p>
+<p>如果HBase整合了Hive，那么在创建Hive的表时，需要在原有字段的基础上新增一个主键字段，没错，该字段就是对应的HBase中的rowKey，由联合主键的成员以 <code>_</code> 拼接而成。</p>
 </div>
 
 <!-- ***********************************************************内容分割线****************************************************************** -->

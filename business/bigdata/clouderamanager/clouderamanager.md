@@ -427,3 +427,28 @@ ClouderaManager已经为我们生成了一份Hive配置文件，并且 `/etc/hiv
 找不到数据库报错会影响以下两方面流程：
 * 不能从外部直接导数据到Hive，例如sqoop
 * 当Hive和HBase存在关联表时，也不能从外部导数据到HBase
+
+
+# Sqoop1
+ClouderaManager默认已经安装了Sqoop1组件，且已经配置了环境变量，直接使用即可。
+
+Sqoop1的使用不再赘述，相关章节已经有说明，下面主要讲讲在导数据过程中遇到的一些问题。
+
+## 导入HBase
+当把数据从关系型数据库导入HBase时，HBase中的表既可以事先建好，也可以让sqoop自动映射新建。
+
+在关系型数据库中，表的主键大致可以分为 **单主键** 和 **联合主键**，并且还要考虑到表 **无主键** 的情况，所以在导入HBase时都要考虑 到。
+
+### 单主键
+通过 `--hbase-row-key <row_key>` 来指定HBase表中的rowKey。
+
+### 联合主键
+如果关系型数据库中出现联合主键，则可以通过 `--hbase-row-key <row_key_1>, <row_key_2>[...]`来制定联合主键，HBase会把多个主键以 `_` 的形式拼接起来作为rowKey，但是联合主键就不在正常字段中展示，如果想让联合主键在正常字段中冗余存在，可以在Sqoop的`sqoop-site.xml`文件中添加如下配置：
+
+    <property>
+            <name>sqoop.hbase.add.row.key</name>
+            <value>true</value>
+    </property>
+ClouderaManager环境下，该文件在 `/etc/sqoop/conf` 目录下。
+
+如果HBase整合了Hive，那么在创建Hive的表时，需要在原有字段的基础上新增一个主键字段，没错，该字段就是对应的HBase中的rowKey，由联合主键的成员以 `_` 拼接而成。
